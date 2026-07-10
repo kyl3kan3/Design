@@ -201,6 +201,9 @@
     .toast { transform: none; transition: opacity 0.15s ease; opacity: 0; }
     .toast.in { opacity: 1; }
     .toast.out { opacity: 0; }
+    /* the lifetime bar is a timer, not motion — keep its real duration so
+       animationend doesn't fire instantly and auto-dismiss the toast */
+    .toast .bar { animation-duration: var(--life, 4200ms) !important; }
     .confetti { display: none; }
     .trig, .trig:hover, .trig:active { transform: none; }
   }
