@@ -19,6 +19,7 @@
     --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
     --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
     --dur-1: 150ms;
     --dur-2: 300ms;
     --dur-3: 600ms;
@@ -78,38 +79,22 @@
     padding: 9px 18px; text-align: center; max-width: min(92vw, 560px);
   }
 
-  /* ---------- aurora field ---------- */
-  .sky {
-    position: fixed; inset: 0; z-index: -2; overflow: hidden;
-    background: radial-gradient(120% 90% at 50% 110%, #0c0c1a 0%, var(--bg) 60%);
+  /* ---------- the sky: two canvases ---------- */
+  .sky { position: fixed; inset: 0; z-index: -2; background: linear-gradient(#05050c 0%, #090914 55%, #0b0c16 100%); }
+  /* ground the composition: the aurora lives in the upper sky, the copy on dark ground */
+  .sky::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 26%, rgba(5, 5, 12, 0.55) 55%, rgba(5, 5, 12, 0.85) 80%);
   }
-  .blob {
-    position: absolute; border-radius: 50%;
-    filter: blur(70px); opacity: 0.55;
-    will-change: transform;
+  #stars { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #aurora {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    filter: blur(14px) saturate(1.25);   /* one GPU blur pass softens the curtains into light */
+    mix-blend-mode: screen;
   }
-  .blob-1 {
-    width: 55vw; height: 55vw; left: -12%; top: -18%;
-    background: radial-gradient(circle, rgba(124, 92, 255, 0.55), transparent 65%);
-    animation: drift-1 26s ease-in-out infinite alternate;
-  }
-  .blob-2 {
-    width: 48vw; height: 48vw; right: -14%; top: 4%;
-    background: radial-gradient(circle, rgba(41, 230, 167, 0.4), transparent 65%);
-    animation: drift-2 32s ease-in-out infinite alternate;
-  }
-  .blob-3 {
-    width: 42vw; height: 42vw; left: 22%; bottom: -26%;
-    background: radial-gradient(circle, rgba(255, 77, 109, 0.3), transparent 65%);
-    animation: drift-3 38s ease-in-out infinite alternate;
-  }
-  @keyframes drift-1 { to { transform: translate(14vw, 10vh) scale(1.18); } }
-  @keyframes drift-2 { to { transform: translate(-12vw, 14vh) scale(0.92) rotate(20deg); } }
-  @keyframes drift-3 { to { transform: translate(8vw, -12vh) scale(1.14); } }
-
-  /* film grain: inline SVG turbulence tile, faintly animated by stepping position */
+  /* film grain: inline SVG turbulence tile, stepped for a projector feel */
   .grain {
-    position: fixed; inset: -100px; z-index: -1; pointer-events: none; opacity: 0.5;
+    position: fixed; inset: -100px; z-index: -1; pointer-events: none; opacity: 0.42;
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.05 0"/></filter><rect width="100%" height="100%" filter="url(%23n)"/></svg>');
     animation: grain-step 1s steps(3) infinite; /* 3 repositions per second */
   }
@@ -136,6 +121,7 @@
     margin: 26px 0 0; font-weight: 800; letter-spacing: -0.035em;
     font-size: clamp(44px, 8.4vw, 116px); line-height: 1.0;
     opacity: 0; animation: rise 0.9s var(--ease-out) 0.25s forwards;
+    text-shadow: 0 2px 40px rgba(5, 5, 12, 0.8);
   }
   /* shimmering gradient text */
   .hero h1 .shimmer {
@@ -191,7 +177,7 @@
 
   /* ---------- reduced motion ---------- */
   @media (prefers-reduced-motion: reduce) {
-    .blob, .grain, .cta, .live .dot::after { animation: none !important; }
+    .grain, .cta, .live .dot::after { animation: none !important; }
     .hero h1 .shimmer { animation: none; opacity: 1; }
     .badge, .hero h1, .hero .lede, .cta-wrap, .live { animation: none; opacity: 1; transform: none; }
     .cta:hover { transform: none; }
@@ -201,9 +187,8 @@
 </head>
 <body>
 <div class="sky" aria-hidden="true">
-  <div class="blob blob-1"></div>
-  <div class="blob blob-2"></div>
-  <div class="blob blob-3"></div>
+  <canvas id="stars"></canvas>
+  <canvas id="aurora"></canvas>
 </div>
 <div class="grain" aria-hidden="true"></div>
 
@@ -214,11 +199,11 @@
 </header>
 
 <aside class="about" id="about" hidden>
-  <h2>Aurora gradient field + grain</h2>
-  <p class="about-what">A hero built from three drifting, heavily blurred gradient blobs under an animated film-grain overlay, with a shimmer running through the headline and a CTA ringed by a rotating conic gradient.</p>
-  <p class="about-why"><strong>Why it catches attention:</strong> slow chromatic drift is ambient salience — enough change to keep peripheral vision engaged, too slow to distract from reading. Grain adds perceived texture and “expensiveness” (flat gradients read as cheap; noisy ones read as film). The one fast element — the CTA ring — inherits all the attention the background primes.</p>
-  <p class="about-craft"><strong>Craft notes:</strong> blobs drift on 26–38s alternate loops at 70px blur so hues mix optically; grain is an inline-SVG feTurbulence tile stepped at 3fps (steps(3)) for a projector feel; the CTA animates a registered <code>@property --ring</code> angle through a conic border over 4s; headline shimmer sweeps every 7s — rest is deliberate.</p>
-  <p class="about-rm"><strong>Reduced motion:</strong> blobs freeze into a static composition, grain stops stepping, the shimmer and pulse stop, and all copy renders immediately.</p>
+  <h2>Canvas aurora + grain</h2>
+  <p class="about-what">A hero lit by a real-time aurora: canvas-drawn curtains of light undulating over a starfield and ridge line, under stepped film grain, with a shimmer through the headline and a CTA ringed by a rotating conic gradient.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> slow, organic light movement is ambient salience — enough change to keep peripheral vision engaged, too slow to fight the copy. Unlike stock gradient blobs, curtain physics read as a <em>place</em>, not a texture; the one fast element — the CTA ring — inherits the attention the sky primes.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> four ribbons drawn per frame as single paths whose edges follow three layered sine fields (periods ~37s/13s/7s); vertical gradients run violet → green → transparent and a whole-canvas GPU blur(14px) + <code>mix-blend-mode: screen</code> melts them into light. Rendering is capped at 30fps and skipped entirely off-tab; ~160 stars and the ridge are drawn once on a separate static canvas.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> the aurora renders exactly one composed frame and never animates; grain, shimmer, and pulse stop; all copy appears immediately.</p>
 </aside>
 
 <main class="stage">
@@ -242,6 +227,116 @@
     aboutPanel.hidden = !open;
     infoBtn.setAttribute('aria-expanded', String(open));
   });
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ================= the sky =================
+  const starsCv = document.getElementById('stars');
+  const auroraCv = document.getElementById('aurora');
+  const sctx = starsCv.getContext('2d');
+  const actx = auroraCv.getContext('2d');
+  let W = 0, H = 0, DPR = 1;
+
+  // star positions are stable across resizes (normalized coords)
+  const STARS = Array.from({ length: 160 }, () => ({
+    x: Math.random(), y: Math.random() * 0.72,
+    r: Math.random() < 0.12 ? 1.7 : 0.9,
+    a: 0.15 + Math.random() * 0.65,
+  }));
+
+  function drawStatic() {
+    sctx.clearRect(0, 0, W, H);
+    // stars
+    for (const s of STARS) {
+      sctx.beginPath();
+      sctx.arc(s.x * W, s.y * H, s.r * DPR, 0, Math.PI * 2);
+      sctx.fillStyle = `rgba(244, 243, 247, ${s.a})`;
+      sctx.fill();
+    }
+    // ridge silhouette along the bottom
+    const base = H * 0.88;
+    sctx.beginPath();
+    sctx.moveTo(0, H);
+    sctx.lineTo(0, base + 14 * DPR);
+    const PEAKS = [[.08, -30], [.18, 6], [.3, -52], [.42, -10], [.55, -66], [.68, -22], [.8, -44], [.92, 2]];
+    for (const [px, py] of PEAKS) sctx.lineTo(px * W, base + py * DPR);
+    sctx.lineTo(W, base - 8 * DPR);
+    sctx.lineTo(W, H);
+    sctx.closePath();
+    sctx.fillStyle = '#0a0a12';
+    sctx.fill();
+  }
+
+  // four aurora ribbons: [baseY (fraction), height, hue pair index, drift phase, alpha]
+  const PALETTES = [
+    ['rgba(124, 92, 255, 0)', 'rgba(124, 92, 255, 0.4)', 'rgba(41, 230, 167, 0.55)'],   // violet → green
+    ['rgba(41, 230, 167, 0)', 'rgba(41, 230, 167, 0.42)', 'rgba(124, 92, 255, 0.35)'],  // green → violet
+    ['rgba(92, 138, 255, 0)', 'rgba(92, 138, 255, 0.3)', 'rgba(41, 230, 167, 0.42)'],   // blue → green
+  ];
+  const RIBBONS = [
+    { y: 0.16, h: 0.22, p: 0, ph: 0.0, amp: 1.0, alpha: 0.6 },
+    { y: 0.07, h: 0.16, p: 1, ph: 2.1, amp: 0.7, alpha: 0.45 },
+    { y: 0.26, h: 0.19, p: 2, ph: 4.4, amp: 1.25, alpha: 0.38 },
+    { y: 0.03, h: 0.10, p: 0, ph: 5.6, amp: 0.5, alpha: 0.3 },
+  ];
+
+  // layered sine field — three incommensurate periods so it never visibly repeats
+  function field(x, t, ph) {
+    return Math.sin(x * 2.1 + t / 37000 * Math.PI * 2 + ph) * 0.55
+         + Math.sin(x * 5.3 - t / 13000 * Math.PI * 2 + ph * 1.7) * 0.3
+         + Math.sin(x * 11.7 + t / 7000 * Math.PI * 2 + ph * 0.6) * 0.15;
+  }
+
+  function drawAurora(t) {
+    actx.clearRect(0, 0, W, H);
+    actx.globalCompositeOperation = 'lighter';
+    const STEP = Math.max(10 * DPR, W / 90);
+    for (const rb of RIBBONS) {
+      const grad = actx.createLinearGradient(0, (rb.y - rb.h * 0.4) * H, 0, (rb.y + rb.h) * H);
+      const [a, b, c] = PALETTES[rb.p];
+      grad.addColorStop(0, a);
+      grad.addColorStop(0.45, b);
+      grad.addColorStop(1, c);
+      actx.globalAlpha = rb.alpha;
+      actx.fillStyle = grad;
+      actx.beginPath();
+      // top edge, left → right
+      for (let x = 0; x <= W + STEP; x += STEP) {
+        const u = x / W;
+        const y = (rb.y + field(u, t, rb.ph) * 0.09 * rb.amp) * H;
+        x === 0 ? actx.moveTo(x, y) : actx.lineTo(x, y);
+      }
+      // bottom edge, right → left (its own undulation → ribbon breathes)
+      for (let x = W + STEP; x >= -STEP; x -= STEP) {
+        const u = x / W;
+        const y = (rb.y + rb.h + field(u + 0.3, t, rb.ph + 1.3) * 0.06 * rb.amp) * H;
+        actx.lineTo(x, y);
+      }
+      actx.closePath();
+      actx.fill();
+    }
+    actx.globalAlpha = 1;
+  }
+
+  function resize() {
+    DPR = Math.min(devicePixelRatio || 1, 2);
+    W = Math.round(innerWidth * DPR);
+    H = Math.round(innerHeight * DPR);
+    for (const cv of [starsCv, auroraCv]) { cv.width = W; cv.height = H; }
+    drawStatic();
+    drawAurora(reduceMotion.matches ? 42000 : performance.now());
+  }
+  addEventListener('resize', resize);
+  resize();
+
+  if (!reduceMotion.matches) {
+    let frame = 0;
+    (function loop(t) {
+      // 30fps is plenty for light this slow — halves the work
+      if (frame++ % 2 === 0 && !document.hidden) drawAurora(t);
+      requestAnimationFrame(loop);
+    })(performance.now());
+  }
 </script>
 </body>
 </html>

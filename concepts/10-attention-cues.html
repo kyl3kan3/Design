@@ -97,16 +97,17 @@
   .nav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
   .nav-item.active { color: var(--ink); background: rgba(124, 92, 255, 0.13); }
   .unread {
-    width: 8px; height: 8px; border-radius: 50%; background: var(--hot);
+    min-width: 18px; height: 18px; border-radius: 999px; background: var(--hot);
+    color: #0a0a10; font: 700 10.5px/18px var(--font-mono); text-align: center; padding: 0 5px;
     margin-left: auto; position: relative;
     opacity: 0; scale: 0; transition: opacity var(--dur-2) ease, scale var(--dur-2) var(--ease-bounce);
   }
   .unread.on { opacity: 1; scale: 1; }
   .unread.on::after {
-    content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--hot);
-    animation: ping 1.8s var(--ease-out) infinite;
+    content: ""; position: absolute; inset: 0; border-radius: 999px; background: var(--hot);
+    animation: ping 1.8s var(--ease-out) infinite; z-index: -1;
   }
-  @keyframes ping { to { transform: scale(3); opacity: 0; } }
+  @keyframes ping { to { transform: scale(2.1); opacity: 0; } }
 
   /* header */
   .main { display: flex; flex-direction: column; }
@@ -115,6 +116,21 @@
     padding: 16px 22px; border-bottom: 1px solid var(--line);
   }
   .topbar h2 { margin: 0; font-size: 16px; }
+  .top-right { display: flex; align-items: center; gap: 18px; }
+  .crew { display: flex; }
+  .crew span {
+    width: 28px; height: 28px; border-radius: 50%; margin-left: -8px;
+    display: grid; place-items: center; position: relative;
+    background: color-mix(in srgb, var(--t) 22%, #14141f); color: var(--t);
+    border: 2px solid var(--bg-elev);
+    font: 700 9.5px var(--font-mono);
+  }
+  .crew span:first-child { margin-left: 0; }
+  .crew span::after {
+    content: ""; position: absolute; right: -1px; bottom: -1px; width: 8px; height: 8px;
+    border-radius: 50%; background: var(--accent-2); border: 2px solid var(--bg-elev);
+  }
+  .crew span:nth-child(3)::after { background: var(--ink-dim); }
   .bell-wrap { position: relative; }
   .bell {
     background: none; border: 1px solid var(--line); border-radius: 10px;
@@ -152,6 +168,31 @@
   .trig:active { transform: translateY(0) scale(0.97); }
   .trig:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .trig .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
+
+  /* the feed: where events leave a record */
+  .feed { display: flex; flex-direction: column; gap: 8px; min-height: 132px; }
+  .feed-empty {
+    border: 1px dashed var(--line); border-radius: 12px; padding: 18px;
+    color: var(--ink-dim); font-size: 13px; text-align: center;
+  }
+  .feed-item {
+    display: flex; gap: 12px; align-items: center;
+    border: 1px solid color-mix(in srgb, var(--tone) 45%, transparent);
+    border-radius: 12px; padding: 11px 14px;
+    background: color-mix(in srgb, var(--tone) 8%, transparent);
+    animation: feed-in 0.45s var(--ease-out);
+    transition: border-color 0.9s ease, background 0.9s ease;
+  }
+  .feed-item.read { border-color: var(--line); background: rgba(244, 243, 247, 0.02); }
+  @keyframes feed-in { from { opacity: 0; transform: translateY(-10px); } }
+  .fi-icon {
+    width: 30px; height: 30px; border-radius: 9px; flex: none;
+    display: grid; place-items: center; font-size: 13px;
+    background: color-mix(in srgb, var(--tone) 16%, transparent); color: var(--tone);
+  }
+  .feed-item b { font-size: 13.5px; display: block; }
+  .feed-item p { margin: 1px 0 0; font-size: 12.5px; color: var(--ink-dim); line-height: 1.4; }
+  .fi-time { margin-left: auto; flex: none; font: 10.5px var(--font-mono); color: var(--ink-dim); }
 
   /* streak / achievement banner */
   .streak {
@@ -216,6 +257,7 @@
     .toast { transform: none; transition: opacity 0.15s ease; opacity: 0; }
     .toast.in { opacity: 1; }
     .toast.out { opacity: 0; }
+    .feed-item { animation: none; }
     /* the lifetime bar is a timer, not motion — keep its real duration so
        animationend doesn't fire instantly and auto-dismiss the toast */
     .toast .bar { animation-duration: var(--life, 4200ms) !important; }
@@ -233,9 +275,9 @@
 
 <aside class="about" id="about" hidden>
   <h2>Attention cues &amp; notification choreography</h2>
-  <p class="about-what">A mock team-inbox where you fire the events yourself and watch the interface choose its attention weapon: toast springs, badge pops, bell wiggle, pulsing unread dots, and a one-shot confetti celebration.</p>
-  <p class="about-why"><strong>Why it catches attention:</strong> each cue sits at a deliberate rung on the salience ladder — a static dot whispers, a pulse hums, a wiggle taps your shoulder, a toast interrupts. Good products spend attention like a budget: the rare celebration stays special because everything else stays quiet.</p>
-  <p class="about-craft"><strong>Craft notes:</strong> toasts enter over 500ms on cubic-bezier(.34,1.56,.64,1) with a visible lifetime bar (hover pauses it — WCAG 2.2.2); exits take 250ms, half the entrance. Badge pops 45% past scale; the bell rings through 5 decaying swings (700ms); unread pings loop at a slow 1.8s so they don't compete with real events.</p>
+  <p class="about-what">A mock team-inbox where you fire the events yourself and watch the interface choose its attention weapon: toast springs, badge pops, bell wiggle, unread counts, a one-shot confetti celebration — and a feed where every event leaves a persistent record.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> each cue sits at a deliberate rung on the salience ladder — a count whispers, a pulse hums, a wiggle taps your shoulder, a toast interrupts. The toast is the transient and the feed row is the consequence: notification design fails when the knock has no letter behind it. And the rare celebration stays special because everything else stays quiet.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> toasts enter over 500ms on cubic-bezier(.34,1.56,.64,1) with a visible lifetime bar (hover or focus pauses it — WCAG 2.2.2); exits take 250ms, half the entrance. Feed rows drop in over 450ms and their tone highlight decays after 1.8s — new stays loud only while it's new. Badge pops 45% past scale; the bell rings through 5 decaying swings (700ms).</p>
   <p class="about-rm"><strong>Reduced motion:</strong> toasts crossfade in place, the bell and flame hold still, pings stop looping, and confetti is skipped entirely — every state change stays visible as a color/badge change.</p>
 </aside>
 
@@ -251,6 +293,8 @@
     <section class="main">
       <div class="topbar">
         <h2>Attention control room</h2>
+        <div class="top-right">
+        <div class="crew" aria-hidden="true"><span style="--t:#7c5cff">MV</span><span style="--t:#29e6a7">JK</span><span style="--t:#ffb74d">AR</span></div>
         <div class="bell-wrap">
           <button class="bell" id="bell" aria-label="Notifications, 0 unread">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -258,6 +302,7 @@
             </svg>
           </button>
           <span class="badge" id="badge" aria-hidden="true">0</span>
+        </div>
         </div>
       </div>
       <div class="body">
@@ -267,6 +312,9 @@
           <button class="trig" data-fire="deploy"><span class="dot" style="background:var(--accent-2)"></span>Deploy finished</button>
           <button class="trig" data-fire="alert"><span class="dot" style="background:var(--hot)"></span>Incident alert</button>
           <button class="trig" data-fire="achieve"><span class="dot" style="background:var(--gold)"></span>Milestone reached</button>
+        </div>
+        <div class="feed" id="feed">
+          <div class="feed-empty" id="feedEmpty">Events leave a record here — the toast is the knock, this is the letter.</div>
         </div>
         <div class="streak" id="streak">
           <span class="flame">🔥</span>
@@ -310,7 +358,29 @@
   }
   bell.addEventListener('click', () => { count = 0; badge.classList.remove('on');
     bell.setAttribute('aria-label', 'Notifications, 0 unread');
-    document.querySelectorAll('.unread').forEach(u => u.classList.remove('on')); });
+    document.querySelectorAll('.unread').forEach(u => { u.classList.remove('on'); u.dataset.n = 0; u.textContent = ''; }); });
+
+  function bumpUnread(id) {
+    const el = document.getElementById(id);
+    const n = (+el.dataset.n || 0) + 1;
+    el.dataset.n = n;
+    el.textContent = n;
+    el.classList.add('on');
+  }
+
+  // ----- the feed: transient toast, persistent record -----
+  const feed = document.getElementById('feed');
+  const feedEmpty = document.getElementById('feedEmpty');
+  function addFeed({ icon, title, body, tone }) {
+    if (feedEmpty.parentNode) feedEmpty.remove();
+    const it = document.createElement('div');
+    it.className = 'feed-item';
+    it.style.setProperty('--tone', tone);
+    it.innerHTML = `<span class="fi-icon" aria-hidden="true">${icon}</span><div><b>${title}</b><p>${body}</p></div><span class="fi-time">now</span>`;
+    feed.prepend(it);
+    setTimeout(() => it.classList.add('read'), 1800); // highlight decays; the record stays
+    while (feed.children.length > 4) feed.lastElementChild.remove();
+  }
 
   // ----- toasts -----
   const toasts = document.getElementById('toasts');
@@ -341,7 +411,7 @@
     if (celebrated) return; // celebrations only stay special if they stay rare
     celebrated = true;
     streak.classList.remove('celebrate'); void streak.offsetWidth; streak.classList.add('celebrate');
-    streak.querySelector('span').textContent = 'Celebrated. Further milestones stay quiet — that’s the point.';
+    streak.querySelector(':scope > div > span').textContent = 'Celebrated. Further milestones stay quiet — that’s the point.';
     if (reduceMotion.matches) return;
     for (let i = 0; i < 26; i++) {
       const c = document.createElement('i');
@@ -362,21 +432,25 @@
   const EVENTS = {
     message: () => {
       toast({ title: 'Mara Voss', body: '“Shipping the motion spec today — check the easing table.”', tone: 'var(--accent)' });
-      document.getElementById('unInbox').classList.add('on');
+      addFeed({ icon: '✉', title: 'Mara Voss', body: 'Shipping the motion spec today — check the easing table.', tone: 'var(--accent)' });
+      bumpUnread('unInbox');
       bumpBadge();
     },
     deploy: () => {
       toast({ title: 'Deploy · production', body: 'relay-web@4.12 is live in 3 regions. 42s build.', tone: 'var(--accent-2)' });
-      document.getElementById('unDeploys').classList.add('on');
+      addFeed({ icon: '▲', title: 'Deploy · production', body: 'relay-web@4.12 live in 3 regions · 42s build', tone: 'var(--accent-2)' });
+      bumpUnread('unDeploys');
       bumpBadge();
     },
     alert: () => {
       toast({ title: 'Incident — p95 latency', body: 'eu-west checkout above 900ms for 5 minutes.', tone: 'var(--hot)', life: 7000 });
-      document.getElementById('unAlerts').classList.add('on');
+      addFeed({ icon: '!', title: 'Incident — p95 latency', body: 'eu-west checkout above 900ms for 5 min', tone: 'var(--hot)' });
+      bumpUnread('unAlerts');
       bumpBadge();
     },
     achieve: () => {
       toast({ title: 'Milestone', body: '10,000 workspaces on Relay. Confetti authorized.', tone: 'var(--gold)' });
+      addFeed({ icon: '★', title: 'Milestone', body: '10,000 workspaces on Relay', tone: 'var(--gold)' });
       celebrate();
       bumpBadge();
     },

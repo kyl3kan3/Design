@@ -131,21 +131,25 @@
     display: flex; flex-direction: column; justify-content: center;
     padding: 60px clamp(20px, 7vw, 110px);
   }
-  .layer h2 { font-size: clamp(34px, 5.6vw, 76px); font-weight: 800; letter-spacing: -0.028em; line-height: 1.04; margin: 0; }
-  .layer p { max-width: 46ch; line-height: 1.7; margin-top: 20px; font-size: 16.5px; }
+  .layer canvas.scene { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+  .layer h2 { font-size: clamp(34px, 5.6vw, 76px); font-weight: 800; letter-spacing: -0.028em; line-height: 1.04; margin: 0; position: relative; z-index: 1; }
+  .layer p { max-width: 46ch; line-height: 1.7; margin-top: 20px; font-size: 16.5px; position: relative; z-index: 1; }
   .layer-dull { color: rgba(244, 243, 247, 0.22); }
   .layer-dull p { color: rgba(244, 243, 247, 0.16); }
   .layer-lit {
-    background:
-      radial-gradient(900px 500px at 80% 20%, rgba(124, 92, 255, 0.22), transparent 60%),
-      radial-gradient(700px 500px at 15% 85%, rgba(41, 230, 167, 0.16), transparent 60%),
-      #0d0d16;
+    background: #0b0e1c;
     color: var(--ink);
     -webkit-mask-image: radial-gradient(circle var(--r, 0px) at var(--sx, 50%) var(--sy, 50%), #000 98%, transparent 100%);
             mask-image: radial-gradient(circle var(--r, 0px) at var(--sx, 50%) var(--sy, 50%), #000 98%, transparent 100%);
   }
+  /* readability scrim over the scene, under the copy */
+  .layer-lit::after {
+    content: ""; position: absolute; inset: 0; z-index: 0;
+    background: linear-gradient(100deg, rgba(8, 8, 15, 0.78) 0%, rgba(8, 8, 15, 0.35) 52%, transparent 74%);
+  }
+  .layer-lit h2 { text-shadow: 0 2px 26px rgba(4, 4, 10, 0.9); }
   .layer-lit h2 em { font-style: normal; color: var(--accent-2); }
-  .layer-lit p { color: var(--ink-dim); }
+  .layer-lit p { color: #b9b8c6; text-shadow: 0 1px 14px rgba(4, 4, 10, 0.9); }
   body.reveal-all .layer-lit { -webkit-mask-image: none; mask-image: none; }
 
   /* ---------- gallery strip ---------- */
@@ -185,10 +189,10 @@
 
 <aside class="about" id="about" hidden>
   <h2>Cursor as character + spotlight reveal</h2>
-  <p class="about-what">The cursor becomes a designed object: a dot with a spring-lagged ring that morphs by context (grows on links, becomes a “VIEW” pill over work items) — and a section where it turns into a literal spotlight, unmasking a hidden vivid layer.</p>
-  <p class="about-why"><strong>Why it catches attention:</strong> the cursor is the one pixel users already watch. Giving it mass and personality creates constant, self-directed motion; the spotlight adds a curiosity gap — you can see there is more page than you're being shown, so you sweep to uncover it.</p>
-  <p class="about-craft"><strong>Craft notes:</strong> dot tracks 1:1; ring follows with lerp 0.16/frame for a ~90ms lag that implies weight; state morphs run 300ms on cubic-bezier(.16,1,.3,1). Spotlight is a CSS <code>mask-image</code> radial circle whose radius springs 0→220px on entry and position lerps at 0.2/frame.</p>
-  <p class="about-rm"><strong>Reduced motion (and touch devices):</strong> the native cursor is kept, the ring is not rendered, and the lit layer displays fully unmasked — no content is gated behind pointer motion.</p>
+  <p class="about-what">The cursor becomes a designed object: a dot with a spring-lagged ring that morphs by context (grows on links, becomes a “VIEW” pill over work items) — and a section where it turns into a literal flashlight, uncovering a generative canvas night scene: a harbor skyline, a moon, and eleven windows still lit.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> the cursor is the one pixel users already watch, and the mask creates a genuine curiosity gap — the dark layer shows faint outlines of <em>something</em>, so you sweep to find out what. Discovery only works when there is something to discover; the payoff is a scene, not more text.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> dot tracks 1:1; ring follows with lerp 0.16/frame for a ~90ms lag that implies weight; state morphs run 300ms on cubic-bezier(.16,1,.3,1). Spotlight is a CSS <code>mask-image</code> radial circle whose radius springs 0→220px on entry and position lerps at 0.2/frame. The scene is drawn once per resize on two canvases from one seeded generator — full color for the lit layer, 5%-alpha wireframe for the teaser.</p>
+  <p class="about-rm"><strong>Reduced motion (and touch devices):</strong> the native cursor is kept, the ring is not rendered, and the night scene displays fully unmasked — no content is gated behind pointer motion.</p>
 </aside>
 
 <div class="cursor-dot" aria-hidden="true"></div>
@@ -204,12 +208,14 @@
 
   <section class="reveal-zone" id="revealZone" aria-label="Spotlight reveal — focus or point to illuminate" tabindex="0">
     <div class="layer layer-dull" aria-hidden="true">
+      <canvas class="scene" id="ghostScene"></canvas>
       <h2>Most portfolios show you everything at once.</h2>
       <p>Every image lit, every case study expanded, every award in the first viewport. Nothing left to want.</p>
     </div>
     <div class="layer layer-lit">
+      <canvas class="scene" id="litScene" aria-hidden="true"></canvas>
       <h2>Ours makes you <em>look for it.</em></h2>
-      <p>Move the light. The work is here — under your hand, at f/1.4, grain and all. What you find depends on where you point.</p>
+      <p>Move the light. This is Rotterdam at 3:41 a.m. — the harbor shift just ended, and eleven windows are still awake. What you find depends on where you point.</p>
     </div>
   </section>
 
@@ -238,6 +244,113 @@
 
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
   const finePointer = matchMedia('(pointer: fine)');
+
+  // ----- the night scene: one seeded generator, two renderings -----
+  // seeded LCG so the skyline is identical on both canvases and across resizes
+  function rng(seed) {
+    let s = seed >>> 0;
+    return () => (s = (s * 1664525 + 1013904223) >>> 0) / 2 ** 32;
+  }
+
+  function drawScene(canvas, mode) {
+    const zone = canvas.closest('.layer');
+    const DPR = Math.min(devicePixelRatio || 1, 2);
+    const cw = zone.clientWidth, ch = zone.clientHeight;
+    canvas.width = cw * DPR; canvas.height = ch * DPR;
+    const c = canvas.getContext('2d');
+    c.scale(DPR, DPR);
+    const R = rng(20260710);
+    const ghost = mode === 'ghost';
+
+    if (!ghost) {
+      // sky
+      const sky = c.createLinearGradient(0, 0, 0, ch);
+      sky.addColorStop(0, '#0a0d1f');
+      sky.addColorStop(0.62, '#101632');
+      sky.addColorStop(1, '#151b38');
+      c.fillStyle = sky;
+      c.fillRect(0, 0, cw, ch);
+      // stars
+      for (let i = 0; i < 130; i++) {
+        c.globalAlpha = 0.15 + R() * 0.6;
+        c.fillStyle = '#f4f3f7';
+        c.fillRect(R() * cw, R() * ch * 0.62, R() < 0.12 ? 2 : 1, R() < 0.12 ? 2 : 1);
+      }
+      c.globalAlpha = 1;
+      // moon + halo
+      const mx = cw * 0.74, my = ch * 0.2;
+      const halo = c.createRadialGradient(mx, my, 6, mx, my, 130);
+      halo.addColorStop(0, 'rgba(244, 240, 220, 0.35)');
+      halo.addColorStop(1, 'rgba(244, 240, 220, 0)');
+      c.fillStyle = halo;
+      c.fillRect(mx - 130, my - 130, 260, 260);
+      c.beginPath(); c.arc(mx, my, 17, 0, Math.PI * 2);
+      c.fillStyle = '#efeadb'; c.fill();
+      c.beginPath(); c.arc(mx - 6, my - 4, 15, 0, Math.PI * 2);   // crescent bite
+      c.fillStyle = '#c9c4b4'; c.globalAlpha = 0.25; c.fill(); c.globalAlpha = 1;
+    } else {
+      c.clearRect(0, 0, cw, ch);
+    }
+
+    // three skyline depths (identical geometry in both modes — same seed)
+    const LAYERS = [
+      { base: 0.66, min: 60, max: 190, fill: '#0e1226', w: [50, 120] },
+      { base: 0.78, min: 90, max: 260, fill: '#0a0d1d', w: [44, 100] },
+      { base: 0.92, min: 120, max: 330, fill: '#060812', w: [60, 140] },
+    ];
+    for (let li = 0; li < LAYERS.length; li++) {
+      const L = LAYERS[li];
+      let x = -10;
+      while (x < cw + 10) {
+        const bw = L.w[0] + R() * (L.w[1] - L.w[0]);
+        const bh = L.min + R() * (L.max - L.min);
+        const by = ch * L.base - bh;
+        if (ghost) {
+          c.strokeStyle = 'rgba(244, 243, 247, 0.055)';
+          c.lineWidth = 1;
+          c.strokeRect(x, by, bw, bh + ch);
+        } else {
+          c.fillStyle = L.fill;
+          c.fillRect(x, by, bw, bh + ch);
+          // antenna on some tall front-layer buildings
+          if (li === 2 && bh > 240 && R() < 0.5) {
+            c.strokeStyle = '#0d101f'; c.lineWidth = 2;
+            c.beginPath(); c.moveTo(x + bw / 2, by); c.lineTo(x + bw / 2, by - 26); c.stroke();
+            c.fillStyle = 'rgba(255, 77, 109, 0.9)';
+            c.fillRect(x + bw / 2 - 1.5, by - 30, 3, 3); // aircraft warning light
+          }
+          // lit windows — sparse and warm: the city is mostly asleep
+          const cols = Math.floor(bw / 14), rows = Math.floor(bh / 20);
+          for (let wx = 0; wx < cols; wx++) {
+            for (let wy = 0; wy < rows; wy++) {
+              if (R() < (li === 2 ? 0.055 : 0.035)) {
+                c.globalAlpha = 0.5 + R() * 0.5;
+                c.fillStyle = R() < 0.75 ? '#ffb74d' : '#cfe2ff';
+                c.fillRect(x + 5 + wx * 14, by + 8 + wy * 20, 4, 6);
+              }
+            }
+          }
+          c.globalAlpha = 1;
+        }
+        x += bw + 2;
+      }
+    }
+    // harbor water hint at the very bottom (lit mode only)
+    if (!ghost) {
+      const water = c.createLinearGradient(0, ch * 0.92, 0, ch);
+      water.addColorStop(0, 'rgba(41, 230, 167, 0.06)');
+      water.addColorStop(1, 'rgba(92, 138, 255, 0.03)');
+      c.fillStyle = water;
+      c.fillRect(0, ch * 0.92, cw, ch * 0.08);
+    }
+  }
+
+  function renderScenes() {
+    drawScene(document.getElementById('litScene'), 'lit');
+    drawScene(document.getElementById('ghostScene'), 'ghost');
+  }
+  renderScenes();
+  addEventListener('resize', renderScenes);
 
   if (!reduceMotion.matches && finePointer.matches) {
     document.body.classList.add('custom-cursor');

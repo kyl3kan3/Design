@@ -135,6 +135,20 @@
   }
   .tcard:hover .glare { opacity: 1; }
 
+  /* holographic foil: a rainbow conic field that rotates with the pointer */
+  .holo {
+    position: absolute; inset: 0; border-radius: inherit; overflow: hidden;
+    transform: translateZ(58px);
+    background: conic-gradient(from calc(var(--ha, 0) * 1deg) at var(--gx, 50%) var(--gy, 30%),
+      rgba(255, 90, 120, 0.55), rgba(255, 200, 80, 0.55), rgba(90, 255, 170, 0.55),
+      rgba(80, 160, 255, 0.55), rgba(190, 90, 255, 0.55), rgba(255, 90, 120, 0.55));
+    opacity: 0; transition: opacity 0.4s ease;
+    mix-blend-mode: color-dodge;
+    filter: blur(22px) saturate(1.3);
+    pointer-events: none;
+  }
+  .tcard:hover .holo { opacity: 0.15; }
+
   /* per-card art colors */
   .tcard[data-c="violet"] { --glow: rgba(124, 92, 255, 0.55); }
   .tcard[data-c="green"]  { --glow: rgba(41, 230, 167, 0.5); }
@@ -143,7 +157,7 @@
   /* ---------- reduced motion ---------- */
   @media (prefers-reduced-motion: reduce) {
     .tcard { transform: none !important; transition: none; }
-    .glare { display: none; }
+    .glare, .holo { display: none; }
     .hint { display: none; } /* tilt is disabled in this mode */
   }
   @media (pointer: coarse) {
@@ -160,7 +174,7 @@
 
 <aside class="about" id="about" hidden>
   <h2>3D tilt cards with parallax depth</h2>
-  <p class="about-what">Trading-card-style tiles that rotate in 3D toward the pointer. Inside each card, the starfield, artwork, and text sit at different <code>translateZ</code> depths, so tilting produces true parallax — plus a screen-blended glare that slides across the surface.</p>
+  <p class="about-what">Trading-card-style tiles that rotate in 3D toward the pointer. Inside each card, the starfield, artwork, and text sit at different <code>translateZ</code> depths, so tilting produces true parallax — plus a screen-blended glare and a holographic foil (a blurred rainbow conic field, color-dodge at 15%) whose hue rotates as the pointer crosses the card.</p>
   <p class="about-why"><strong>Why it catches attention:</strong> parallax under hand control is a depth cue the visual system can't ignore — the card stops being a picture and becomes an object. The moving specular highlight completes the material illusion (the brain reads gloss), and objects get attention that images don't.</p>
   <p class="about-craft"><strong>Craft notes:</strong> rotation is clamped to ±10° and eased with lerp 0.12/frame rather than snapping 1:1; depth layers at 6 / 34 / 52 / 60px inside <code>perspective: 1400px</code>; on pointer-leave the same lerp carries the card home — one easing system, no transition fighting the loop (~400ms settle). Glare is a 360px radial at the pointer, <code>mix-blend-mode: screen</code>.</p>
   <p class="about-rm"><strong>Reduced motion:</strong> tilt, parallax, and glare are fully disabled — cards render flat with their hover shadow as the only feedback.</p>
@@ -178,12 +192,32 @@
       <div class="layer-stars" aria-hidden="true"></div>
       <div class="layer-art" aria-hidden="true">
         <svg viewBox="0 0 200 150">
-          <circle cx="100" cy="80" r="34" fill="#1c1630"/>
-          <circle cx="100" cy="80" r="34" fill="none" stroke="#7c5cff" stroke-width="1.5" opacity="0.9"/>
-          <ellipse cx="100" cy="80" rx="62" ry="18" fill="none" stroke="#7c5cff" stroke-width="1.2" opacity="0.55"/>
-          <ellipse cx="100" cy="80" rx="78" ry="24" fill="none" stroke="#7c5cff" stroke-width="0.8" opacity="0.3"/>
+          <defs>
+            <radialGradient id="vNebula" cx="0.3" cy="0.25" r="0.9">
+              <stop offset="0" stop-color="#3b2a78" stop-opacity="0.55"/>
+              <stop offset="0.6" stop-color="#241a4d" stop-opacity="0.25"/>
+              <stop offset="1" stop-color="#241a4d" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="vPlanet" cx="0.32" cy="0.28" r="1">
+              <stop offset="0" stop-color="#a88fff"/>
+              <stop offset="0.45" stop-color="#6a4ce0"/>
+              <stop offset="1" stop-color="#221647"/>
+            </radialGradient>
+            <linearGradient id="vRing" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#7c5cff" stop-opacity="0.05"/>
+              <stop offset="0.5" stop-color="#a88fff" stop-opacity="0.9"/>
+              <stop offset="1" stop-color="#7c5cff" stop-opacity="0.05"/>
+            </linearGradient>
+          </defs>
+          <ellipse cx="90" cy="70" rx="95" ry="70" fill="url(#vNebula)"/>
+          <ellipse cx="100" cy="80" rx="78" ry="24" fill="none" stroke="url(#vRing)" stroke-width="1"/>
+          <circle cx="100" cy="80" r="34" fill="url(#vPlanet)"/>
+          <ellipse cx="93" cy="70" rx="20" ry="8" fill="#c4b2ff" opacity="0.18" transform="rotate(-18 93 70)"/>
+          <ellipse cx="100" cy="80" rx="60" ry="17" fill="none" stroke="url(#vRing)" stroke-width="2.4"/>
+          <ellipse cx="100" cy="80" rx="68" ry="20" fill="none" stroke="url(#vRing)" stroke-width="1.1" opacity="0.7"/>
           <path d="M20 130 Q 90 96 182 22" fill="none" stroke="#29e6a7" stroke-width="1.4" stroke-dasharray="4 5"/>
-          <circle cx="182" cy="22" r="3.4" fill="#29e6a7"/>
+          <circle cx="182" cy="22" r="5.5" fill="#29e6a7" opacity="0.25"/>
+          <circle cx="182" cy="22" r="3" fill="#29e6a7"/>
         </svg>
       </div>
       <div class="layer-text">
@@ -196,6 +230,7 @@
         </div>
       </div>
       <div class="glare" aria-hidden="true"></div>
+      <div class="holo" aria-hidden="true"></div>
     </article>
 
     <article class="tcard" data-c="gold">
@@ -203,12 +238,34 @@
       <div class="layer-stars" aria-hidden="true"></div>
       <div class="layer-art" aria-hidden="true">
         <svg viewBox="0 0 200 150">
-          <circle cx="100" cy="76" r="30" fill="#241a10"/>
-          <circle cx="100" cy="76" r="30" fill="none" stroke="#ffb74d" stroke-width="1.5"/>
-          <ellipse cx="100" cy="76" rx="70" ry="16" fill="none" stroke="#ffb74d" stroke-width="2" opacity="0.85"/>
-          <ellipse cx="100" cy="76" rx="56" ry="12.5" fill="none" stroke="#ffb74d" stroke-width="0.9" opacity="0.5"/>
+          <defs>
+            <radialGradient id="gNebula" cx="0.6" cy="0.3" r="0.9">
+              <stop offset="0" stop-color="#7a5218" stop-opacity="0.4"/>
+              <stop offset="1" stop-color="#7a5218" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="gPlanet" cx="0.34" cy="0.3" r="1">
+              <stop offset="0" stop-color="#ffe3b0"/>
+              <stop offset="0.5" stop-color="#e8a852"/>
+              <stop offset="1" stop-color="#3d2708"/>
+            </radialGradient>
+            <linearGradient id="gRing" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#ffb74d" stop-opacity="0.06"/>
+              <stop offset="0.5" stop-color="#ffd9a0" stop-opacity="0.95"/>
+              <stop offset="1" stop-color="#ffb74d" stop-opacity="0.06"/>
+            </linearGradient>
+          </defs>
+          <ellipse cx="105" cy="66" rx="90" ry="62" fill="url(#gNebula)"/>
+          <ellipse cx="100" cy="76" rx="72" ry="17" fill="none" stroke="url(#gRing)" stroke-width="1" opacity="0.8"/>
+          <circle cx="100" cy="76" r="30" fill="url(#gPlanet)"/>
+          <path d="M72 70 Q 100 62 128 71" fill="none" stroke="#c88a3a" stroke-width="2.5" opacity="0.4"/>
+          <path d="M71 80 Q 100 87 129 79" fill="none" stroke="#b57a2e" stroke-width="3" opacity="0.35"/>
+          <ellipse cx="93" cy="66" rx="16" ry="7" fill="#fff3da" opacity="0.3" transform="rotate(-14 93 66)"/>
+          <ellipse cx="100" cy="76" rx="62" ry="14" fill="none" stroke="url(#gRing)" stroke-width="3.2"/>
+          <ellipse cx="100" cy="76" rx="52" ry="11.5" fill="none" stroke="url(#gRing)" stroke-width="1.4" opacity="0.7"/>
+          <path d="M62 82 A 45 10 0 0 0 138 82" fill="none" stroke="#241505" stroke-width="2.6" opacity="0.55"/>
           <path d="M178 128 A 86 86 0 0 1 30 120" fill="none" stroke="#ff4d6d" stroke-width="1.3" stroke-dasharray="3 5"/>
-          <circle cx="30" cy="120" r="3.2" fill="#ff4d6d"/>
+          <circle cx="30" cy="120" r="5.5" fill="#ff4d6d" opacity="0.25"/>
+          <circle cx="30" cy="120" r="3" fill="#ff4d6d"/>
         </svg>
       </div>
       <div class="layer-text">
@@ -221,6 +278,7 @@
         </div>
       </div>
       <div class="glare" aria-hidden="true"></div>
+      <div class="holo" aria-hidden="true"></div>
     </article>
 
     <article class="tcard" data-c="green">
@@ -228,13 +286,30 @@
       <div class="layer-stars" aria-hidden="true"></div>
       <div class="layer-art" aria-hidden="true">
         <svg viewBox="0 0 200 150">
-          <circle cx="86" cy="78" r="26" fill="#0f2018"/>
-          <circle cx="86" cy="78" r="26" fill="none" stroke="#29e6a7" stroke-width="1.5"/>
-          <path d="M74 70 Q 86 92 100 68" fill="none" stroke="#29e6a7" stroke-width="1.1" opacity="0.7"/>
-          <circle cx="146" cy="46" r="7" fill="none" stroke="#8f8ea0" stroke-width="1.2"/>
-          <circle cx="163" cy="98" r="4" fill="none" stroke="#8f8ea0" stroke-width="1"/>
+          <defs>
+            <radialGradient id="oNebula" cx="0.4" cy="0.4" r="0.9">
+              <stop offset="0" stop-color="#0e4a35" stop-opacity="0.45"/>
+              <stop offset="1" stop-color="#0e4a35" stop-opacity="0"/>
+            </radialGradient>
+            <radialGradient id="oPlanet" cx="0.34" cy="0.3" r="1">
+              <stop offset="0" stop-color="#c8ffe9"/>
+              <stop offset="0.5" stop-color="#3fd9a0"/>
+              <stop offset="1" stop-color="#062d1f"/>
+            </radialGradient>
+            <radialGradient id="oMoon" cx="0.35" cy="0.32" r="1">
+              <stop offset="0" stop-color="#b9b8c8"/>
+              <stop offset="1" stop-color="#2a2a38"/>
+            </radialGradient>
+          </defs>
+          <ellipse cx="90" cy="76" rx="92" ry="66" fill="url(#oNebula)"/>
+          <circle cx="86" cy="78" r="26" fill="url(#oPlanet)"/>
+          <path d="M78 66 q 8 10 0 20 q 12 -2 16 -14 q -8 -8 -16 -6 Z" fill="#eafff5" opacity="0.35"/>
+          <ellipse cx="79" cy="69" rx="12" ry="5.5" fill="#ffffff" opacity="0.25" transform="rotate(-16 79 69)"/>
+          <circle cx="146" cy="46" r="9" fill="url(#oMoon)"/>
+          <circle cx="163" cy="98" r="4" fill="url(#oMoon)" opacity="0.8"/>
           <path d="M12 116 Q 80 108 190 30" fill="none" stroke="#7c5cff" stroke-width="1.3" stroke-dasharray="4 5"/>
-          <circle cx="190" cy="30" r="3.2" fill="#7c5cff"/>
+          <circle cx="190" cy="30" r="5.5" fill="#7c5cff" opacity="0.25"/>
+          <circle cx="190" cy="30" r="3" fill="#7c5cff"/>
         </svg>
       </div>
       <div class="layer-text">
@@ -247,6 +322,7 @@
         </div>
       </div>
       <div class="glare" aria-hidden="true"></div>
+      <div class="holo" aria-hidden="true"></div>
     </article>
   </div>
 </main>
@@ -303,6 +379,7 @@
         trx = (0.5 - py) * 2 * MAX;
         card.style.setProperty('--gx', `${px * 100}%`);
         card.style.setProperty('--gy', `${py * 100}%`);
+        card.style.setProperty('--ha', (px * 300).toFixed(1)); // foil hue field rotates with the pointer
         kick();
       }, { passive: true });
 
