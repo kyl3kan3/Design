@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10 — Attention Cues · Attention Lab</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px; padding: 14px 20px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 6px 14px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+  }
+
+  /* ---------- app frame ---------- */
+  .app {
+    max-width: 1080px; margin: 0 auto; padding: 110px clamp(16px, 4vw, 40px) 90px;
+  }
+  .frame {
+    display: grid; grid-template-columns: 220px 1fr; border: 1px solid var(--line);
+    border-radius: 18px; overflow: hidden; background: var(--bg-elev); min-height: 520px;
+  }
+  @media (max-width: 760px) { .frame { grid-template-columns: 1fr; } }
+
+  /* sidebar */
+  .rail { border-right: 1px solid var(--line); padding: 20px 14px; }
+  @media (max-width: 760px) { .rail { border-right: 0; border-bottom: 1px solid var(--line); } }
+  .rail .logo { font-weight: 800; letter-spacing: -0.02em; font-size: 17px; padding: 6px 10px 18px; }
+  .rail .logo em { font-style: normal; color: var(--accent-2); }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; width: 100%;
+    background: none; border: none; color: var(--ink-dim); text-align: left;
+    font: 500 14px var(--font-sans); padding: 10px 10px; border-radius: 9px; cursor: pointer;
+    transition: background var(--dur-1) ease, color var(--dur-1) ease;
+    position: relative;
+  }
+  .nav-item:hover { background: rgba(244, 243, 247, 0.05); color: var(--ink); }
+  .nav-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .nav-item.active { color: var(--ink); background: rgba(124, 92, 255, 0.13); }
+  .unread {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--hot);
+    margin-left: auto; position: relative;
+    opacity: 0; scale: 0; transition: opacity var(--dur-2) ease, scale var(--dur-2) var(--ease-bounce);
+  }
+  .unread.on { opacity: 1; scale: 1; }
+  .unread.on::after {
+    content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--hot);
+    animation: ping 1.8s var(--ease-out) infinite;
+  }
+  @keyframes ping { to { transform: scale(3); opacity: 0; } }
+
+  /* header */
+  .main { display: flex; flex-direction: column; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 22px; border-bottom: 1px solid var(--line);
+  }
+  .topbar h2 { margin: 0; font-size: 16px; }
+  .bell-wrap { position: relative; }
+  .bell {
+    background: none; border: 1px solid var(--line); border-radius: 10px;
+    padding: 9px 11px; cursor: pointer; color: var(--ink-dim);
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .bell:hover { color: var(--ink); border-color: var(--ink-dim); }
+  .bell:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .bell svg { width: 18px; height: 18px; display: block; }
+  .bell.ring svg { animation: ring 0.7s var(--ease-out); transform-origin: 50% 2px; }
+  @keyframes ring {
+    0% { transform: rotate(0); } 15% { transform: rotate(18deg); } 30% { transform: rotate(-14deg); }
+    45% { transform: rotate(9deg); } 60% { transform: rotate(-5deg); } 75% { transform: rotate(2deg); } 100% { transform: rotate(0); }
+  }
+  .badge {
+    position: absolute; top: -7px; right: -7px; min-width: 19px; height: 19px;
+    background: var(--hot); color: #fff; border-radius: 999px;
+    font: 700 11px/19px var(--font-mono); text-align: center; padding: 0 5px;
+    scale: 0; transition: scale var(--dur-2) var(--ease-bounce);
+  }
+  .badge.on { scale: 1; }
+  .badge.pop { animation: badge-pop 0.35s var(--ease-bounce); }
+  @keyframes badge-pop { 50% { scale: 1.45; } }
+
+  /* body: triggers */
+  .body { padding: 26px 22px; display: flex; flex-direction: column; gap: 18px; }
+  .body .lead { color: var(--ink-dim); font-size: 14px; line-height: 1.6; max-width: 56ch; margin: 0; }
+  .triggers { display: flex; flex-wrap: wrap; gap: 10px; }
+  .trig {
+    border: 1px solid var(--line); background: #171725; color: var(--ink);
+    font: 600 13.5px var(--font-sans); padding: 12px 18px; border-radius: 11px; cursor: pointer;
+    transition: transform var(--dur-1) var(--ease-out), border-color var(--dur-1) ease, background var(--dur-1) ease;
+  }
+  .trig:hover { transform: translateY(-2px); border-color: rgba(244,243,247,0.25); }
+  .trig:active { transform: translateY(0) scale(0.97); }
+  .trig:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .trig .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
+
+  /* streak / achievement banner */
+  .streak {
+    margin-top: auto; border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px;
+    display: flex; align-items: center; gap: 14px; position: relative; overflow: hidden;
+  }
+  .streak .flame { font-size: 26px; }
+  .streak b { display: block; font-size: 15px; }
+  .streak span { color: var(--ink-dim); font-size: 13px; }
+  .streak.celebrate { border-color: rgba(255, 183, 77, 0.5); }
+  .streak.celebrate .flame { animation: flame-jump 0.6s var(--ease-bounce); }
+  @keyframes flame-jump { 40% { transform: translateY(-10px) scale(1.3) rotate(-8deg); } }
+
+  /* confetti */
+  .confetti {
+    position: absolute; width: 8px; height: 12px; top: 50%; left: 60px;
+    pointer-events: none;
+    animation: confetti-fly 0.9s var(--ease-out) forwards;
+  }
+  @keyframes confetti-fly {
+    from { transform: translate(0, 0) rotate(0); opacity: 1; }
+    to { transform: translate(var(--cx), var(--cy)) rotate(var(--cr)); opacity: 0; }
+  }
+
+  /* ---------- toasts ---------- */
+  .toasts {
+    position: fixed; right: 22px; bottom: 60px; z-index: 60;
+    display: flex; flex-direction: column-reverse; gap: 10px; width: min(340px, calc(100vw - 44px));
+  }
+  .toast {
+    background: rgba(23, 23, 37, 0.94); backdrop-filter: blur(10px);
+    border: 1px solid var(--line); border-left: 3px solid var(--tone, var(--accent));
+    border-radius: 12px; padding: 14px 16px 16px;
+    transform: translateX(120%);
+    transition: transform 0.5s var(--ease-bounce), opacity 0.25s ease;
+    position: relative; overflow: hidden;
+  }
+  .toast.in { transform: translateX(0); }
+  .toast.out { transform: translateX(0) scale(0.92); opacity: 0; transition: transform 0.25s ease, opacity 0.25s ease; }
+  .toast b { font-size: 14px; display: block; margin-bottom: 2px; }
+  .toast p { margin: 0; font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
+  .toast .bar {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 2.5px;
+    background: var(--tone, var(--accent)); transform-origin: left;
+    animation: toast-timer var(--life, 4200ms) linear forwards;
+  }
+  .toast:hover .bar { animation-play-state: paused; }
+  @keyframes toast-timer { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .unread, .badge { transition: none; }
+    .unread.on::after, .bell.ring svg, .badge.pop, .streak.celebrate .flame { animation: none !important; }
+    .toast { transform: none; transition: opacity 0.15s ease; opacity: 0; }
+    .toast.in { opacity: 1; }
+    .toast.out { opacity: 0; }
+    .confetti { display: none; }
+    .trig, .trig:hover, .trig:active { transform: none; }
+  }
+</style>
+</head>
+<body>
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">10</span><span class="chrome-name">Attention Cues</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>Attention cues &amp; notification choreography</h2>
+  <p class="about-what">A mock team-inbox where you fire the events yourself and watch the interface choose its attention weapon: toast springs, badge pops, bell wiggle, pulsing unread dots, and a one-shot confetti celebration.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> each cue sits at a deliberate rung on the salience ladder — a static dot whispers, a pulse hums, a wiggle taps your shoulder, a toast interrupts. Good products spend attention like a budget: the rare celebration stays special because everything else stays quiet.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> toasts enter over 500ms on cubic-bezier(.34,1.56,.64,1) with a visible lifetime bar (hover pauses it — WCAG 2.2.2); exits take 250ms, half the entrance. Badge pops 45% past scale; the bell rings through 5 decaying swings (700ms); unread pings loop at a slow 1.8s so they don't compete with real events.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> toasts crossfade in place, the bell and flame hold still, pings stop looping, and confetti is skipped entirely — every state change stays visible as a color/badge change.</p>
+</aside>
+
+<main class="app">
+  <div class="frame">
+    <nav class="rail" aria-label="App navigation">
+      <div class="logo">Relay<em>.</em></div>
+      <button class="nav-item active">Inbox <span class="unread" id="unInbox"></span></button>
+      <button class="nav-item">Deploys <span class="unread" id="unDeploys"></span></button>
+      <button class="nav-item">Alerts <span class="unread" id="unAlerts"></span></button>
+      <button class="nav-item">Settings</button>
+    </nav>
+    <section class="main">
+      <div class="topbar">
+        <h2>Attention control room</h2>
+        <div class="bell-wrap">
+          <button class="bell" id="bell" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 20a2 2 0 0 1-3.4 0"/>
+            </svg>
+          </button>
+          <span class="badge" id="badge">0</span>
+        </div>
+      </div>
+      <div class="body">
+        <p class="lead">Every event below uses a different rung of the salience ladder. Fire a few at once and notice which ones win your eye — that ordering is the design.</p>
+        <div class="triggers">
+          <button class="trig" data-fire="message"><span class="dot" style="background:var(--accent)"></span>New message</button>
+          <button class="trig" data-fire="deploy"><span class="dot" style="background:var(--accent-2)"></span>Deploy finished</button>
+          <button class="trig" data-fire="alert"><span class="dot" style="background:var(--hot)"></span>Incident alert</button>
+          <button class="trig" data-fire="achieve"><span class="dot" style="background:var(--gold)"></span>Milestone reached</button>
+        </div>
+        <div class="streak" id="streak">
+          <span class="flame">🔥</span>
+          <div><b>12-week shipping streak</b><span>Hit a milestone to celebrate — once.</span></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="toasts" id="toasts" role="region" aria-live="polite" aria-label="Notifications"></div>
+
+<footer class="hint">Fire the events — watch which cue wins your eye</footer>
+
+<script>
+  // ----- about panel -----
+  const infoBtn = document.querySelector('.chrome-info');
+  const aboutPanel = document.getElementById('about');
+  infoBtn.addEventListener('click', () => {
+    const open = aboutPanel.hidden;
+    aboutPanel.hidden = !open;
+    infoBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ----- state -----
+  const badge = document.getElementById('badge');
+  const bell = document.getElementById('bell');
+  let count = 0;
+
+  function bumpBadge() {
+    count++;
+    badge.textContent = count;
+    badge.classList.add('on');
+    if (!reduceMotion.matches) {
+      badge.classList.remove('pop'); void badge.offsetWidth; badge.classList.add('pop');
+      bell.classList.remove('ring'); void bell.offsetWidth; bell.classList.add('ring');
+    }
+  }
+  bell.addEventListener('click', () => { count = 0; badge.classList.remove('on');
+    document.querySelectorAll('.unread').forEach(u => u.classList.remove('on')); });
+
+  // ----- toasts -----
+  const toasts = document.getElementById('toasts');
+  function toast({ title, body, tone, life = 4200 }) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.style.setProperty('--tone', tone);
+    t.style.setProperty('--life', life + 'ms');
+    t.innerHTML = `<b>${title}</b><p>${body}</p><span class="bar"></span>`;
+    toasts.appendChild(t);
+    requestAnimationFrame(() => requestAnimationFrame(() => t.classList.add('in')));
+    const bar = t.querySelector('.bar');
+    bar.addEventListener('animationend', () => dismiss(t));
+    t.addEventListener('click', () => dismiss(t));
+    if (toasts.children.length > 4) dismiss(toasts.children[0]); // cap the stack
+  }
+  function dismiss(t) {
+    if (!t || t.classList.contains('out')) return;
+    t.classList.remove('in'); t.classList.add('out');
+    setTimeout(() => t.remove(), 300);
+  }
+
+  // ----- confetti -----
+  const streak = document.getElementById('streak');
+  const CONF = ['#7c5cff', '#29e6a7', '#ff4d6d', '#ffb74d', '#f4f3f7'];
+  let celebrated = false;
+  function celebrate() {
+    streak.classList.remove('celebrate'); void streak.offsetWidth; streak.classList.add('celebrate');
+    if (reduceMotion.matches) return;
+    for (let i = 0; i < 26; i++) {
+      const c = document.createElement('i');
+      c.className = 'confetti';
+      const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.8;
+      const dist = 60 + Math.random() * 130;
+      c.style.setProperty('--cx', `${Math.cos(ang) * dist}px`);
+      c.style.setProperty('--cy', `${Math.sin(ang) * dist - 20}px`);
+      c.style.setProperty('--cr', `${(Math.random() - 0.5) * 540}deg`);
+      c.style.background = CONF[i % CONF.length];
+      c.style.animationDelay = `${Math.random() * 90}ms`;
+      streak.appendChild(c);
+      c.addEventListener('animationend', () => c.remove());
+    }
+  }
+
+  // ----- event wiring -----
+  const EVENTS = {
+    message: () => {
+      toast({ title: 'Mara Voss', body: '“Shipping the motion spec today — check the easing table.”', tone: 'var(--accent)' });
+      document.getElementById('unInbox').classList.add('on');
+      bumpBadge();
+    },
+    deploy: () => {
+      toast({ title: 'Deploy · production', body: 'relay-web@4.12 is live in 3 regions. 42s build.', tone: 'var(--accent-2)' });
+      document.getElementById('unDeploys').classList.add('on');
+      bumpBadge();
+    },
+    alert: () => {
+      toast({ title: 'Incident — p95 latency', body: 'eu-west checkout above 900ms for 5 minutes.', tone: 'var(--hot)', life: 7000 });
+      document.getElementById('unAlerts').classList.add('on');
+      bumpBadge();
+    },
+    achieve: () => {
+      toast({ title: 'Milestone', body: '10,000 workspaces on Relay. Confetti authorized.', tone: 'var(--gold)' });
+      celebrate();
+      bumpBadge();
+    },
+  };
+  document.querySelectorAll('[data-fire]').forEach(btn =>
+    btn.addEventListener('click', () => EVENTS[btn.dataset.fire]()));
+</script>
+</body>
+</html>

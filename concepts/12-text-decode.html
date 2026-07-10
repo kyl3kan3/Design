@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>12 — Text Decode · Attention Lab</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-mono); -webkit-font-smoothing: antialiased;
+  }
+  /* faint scanlines for the terminal feel */
+  body::after {
+    content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 1;
+    background: repeating-linear-gradient(0deg, rgba(244,243,247,0.025) 0 1px, transparent 1px 3px);
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px; padding: 14px 20px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 6px 14px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+    font-family: var(--font-sans);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+  }
+
+  /* ---------- terminal hero ---------- */
+  .stage {
+    min-height: 100vh; max-width: 1000px; margin: 0 auto;
+    padding: 130px clamp(20px, 5vw, 60px) 110px;
+    position: relative; z-index: 2;
+  }
+  .prompt-line { color: var(--accent-2); font-size: 13px; letter-spacing: 0.06em; margin: 0 0 26px; }
+  .prompt-line .path { color: var(--ink-dim); }
+  h1.decode {
+    font-size: clamp(30px, 5.4vw, 64px); font-weight: 700; letter-spacing: -0.01em;
+    line-height: 1.14; margin: 0; min-height: 2.3em;
+  }
+  h1 .caret {
+    display: inline-block; width: 0.55em; height: 1.05em; vertical-align: text-bottom;
+    background: var(--accent-2); margin-left: 4px;
+    animation: blink 1.05s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+  .decode .settled { color: var(--ink); }
+  .decode .noise { color: var(--accent); opacity: 0.85; }
+  .sub {
+    color: var(--ink-dim); font-family: var(--font-sans); font-size: 16.5px; line-height: 1.7;
+    max-width: 54ch; margin: 30px 0 0;
+    opacity: 0; transform: translateY(12px);
+    transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+  }
+  .sub.show { opacity: 1; transform: none; }
+
+  /* ---------- scramble list ---------- */
+  .dossier { margin-top: 70px; border-top: 1px solid var(--line); }
+  .row {
+    display: flex; justify-content: space-between; align-items: baseline; gap: 18px;
+    padding: 22px 6px; border-bottom: 1px solid var(--line);
+    text-decoration: none; cursor: pointer;
+    transition: background var(--dur-1) ease;
+  }
+  .row:hover { background: rgba(124, 92, 255, 0.05); }
+  .row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .row .name { font-size: clamp(17px, 2.3vw, 24px); color: var(--ink); letter-spacing: 0.02em; }
+  .row .tag { font-size: 11.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-dim); flex: none; }
+  .row[data-tone="green"] .tag { color: var(--accent-2); }
+  .row[data-tone="gold"] .tag { color: var(--gold); }
+  .row[data-tone="hot"] .tag { color: var(--hot); }
+
+  /* ---------- status board ---------- */
+  .board {
+    margin-top: 70px; display: grid; gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  .cell {
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px;
+    background: rgba(16, 16, 26, 0.6);
+  }
+  .cell .k { font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink-dim); }
+  .cell .v { font-size: 22px; margin-top: 8px; color: var(--accent-2); min-height: 1.3em; }
+  .cell:nth-child(2) .v { color: var(--gold); }
+  .cell:nth-child(3) .v { color: var(--accent); }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    h1 .caret { animation: none; }
+    .sub { opacity: 1; transform: none; transition: none; }
+    body::after { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">12</span><span class="chrome-name">Text Decode</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>Decode &amp; scramble text effects</h2>
+  <p class="about-what">A headline that resolves out of cipher noise character by character, dossier rows that scramble and re-settle on hover, and status cells that decode when they enter view.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> text that hasn't finished becoming text is an open loop — the brain is compelled to watch until every glyph settles (the Zeigarnik effect applied to rendering). Randomized glyphs also produce high-frequency local motion, which peripheral vision flags instantly.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> each character gets a random settle time (staggered left-to-right, full headline ≈1.8s); unsettled glyphs re-roll from a cipher set every 2 frames (~33ms — fast enough to shimmer, slow enough to read as characters); settled characters lock to full color so progress is legible. Hover scrambles run a shorter 450ms so navigation never feels blocked.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> all text renders instantly in its final form; hover and viewport decode effects are disabled and the caret doesn't blink.</p>
+</aside>
+
+<main class="stage">
+  <p class="prompt-line"><span class="path">nulltrace@field:~$</span> cat mission.txt</p>
+  <h1 class="decode" id="headline" aria-label="We break in so they can't."><span class="caret" aria-hidden="true"></span></h1>
+  <p class="sub" id="sub">Nulltrace is an offensive-security practice. Banks, grids, and hospitals pay us
+  to attack them first — then we hand over the map of every door we opened. Below: engagements
+  we're cleared to name.</p>
+
+  <nav class="dossier" aria-label="Case files">
+    <a class="row" data-tone="green" href="#" onclick="return false"><span class="name" data-scramble>Operation Glasshouse</span><span class="tag">Fin · 2025</span></a>
+    <a class="row" data-tone="gold" href="#" onclick="return false"><span class="name" data-scramble>Substation Redteam 7</span><span class="tag">Energy · 2025</span></a>
+    <a class="row" data-tone="hot" href="#" onclick="return false"><span class="name" data-scramble>Wardline Hospital Audit</span><span class="tag">Health · 2024</span></a>
+    <a class="row" data-tone="green" href="#" onclick="return false"><span class="name" data-scramble>Ferry Terminal Bypass</span><span class="tag">Transit · 2024</span></a>
+  </nav>
+
+  <div class="board">
+    <div class="cell"><div class="k">Engagements</div><div class="v" data-decode>214 completed</div></div>
+    <div class="cell"><div class="k">Mean time to entry</div><div class="v" data-decode>11 min 40 s</div></div>
+    <div class="cell"><div class="k">Findings disclosed</div><div class="v" data-decode>100 percent</div></div>
+  </div>
+</main>
+
+<footer class="hint">Hover the case files</footer>
+
+<script>
+  // ----- about panel -----
+  const infoBtn = document.querySelector('.chrome-info');
+  const aboutPanel = document.getElementById('about');
+  infoBtn.addEventListener('click', () => {
+    const open = aboutPanel.hidden;
+    aboutPanel.hidden = !open;
+    infoBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const GLYPHS = '!<>-_\\/[]{}—=+*^?#$%&@01';
+  const rand = arr => arr[Math.floor(Math.random() * arr.length)];
+
+  // ----- headline decode: per-char settle times, unsettled chars re-roll -----
+  const HEADLINE = "We break in\nso they can't.";
+  const headline = document.getElementById('headline');
+  const sub = document.getElementById('sub');
+
+  function renderFinal() {
+    headline.innerHTML = '';
+    HEADLINE.split('').forEach(ch => {
+      if (ch === '\n') { headline.appendChild(document.createElement('br')); return; }
+      const s = document.createElement('span');
+      s.className = 'settled'; s.textContent = ch;
+      headline.appendChild(s);
+    });
+    const caret = document.createElement('span');
+    caret.className = 'caret'; caret.setAttribute('aria-hidden', 'true');
+    headline.appendChild(caret);
+    sub.classList.add('show');
+  }
+
+  if (reduceMotion.matches) {
+    renderFinal();
+  } else {
+    const chars = HEADLINE.split('').map((ch, i) => ({
+      ch,
+      settleAt: 380 + i * 55 + Math.random() * 420,   // staggered + jittered
+      el: null,
+    }));
+    headline.innerHTML = '';
+    for (const c of chars) {
+      if (c.ch === '\n') { headline.appendChild(document.createElement('br')); continue; }
+      c.el = document.createElement('span');
+      c.el.textContent = '';
+      headline.appendChild(c.el);
+    }
+    const caret = document.createElement('span');
+    caret.className = 'caret'; caret.setAttribute('aria-hidden', 'true');
+    headline.appendChild(caret);
+
+    const t0 = performance.now();
+    let frameCount = 0;
+    (function decode(t) {
+      const dt = t - t0;
+      let done = true;
+      frameCount++;
+      for (const c of chars) {
+        if (!c.el) continue;
+        if (dt >= c.settleAt) {
+          if (c.el.className !== 'settled') { c.el.className = 'settled'; c.el.textContent = c.ch; }
+        } else {
+          done = false;
+          if (c.ch === ' ') { c.el.textContent = ' '; continue; }
+          if (dt > c.settleAt - 700 && frameCount % 2 === 0) {  // re-roll every 2 frames
+            c.el.className = 'noise';
+            c.el.textContent = rand(GLYPHS);
+          }
+        }
+      }
+      if (!done) requestAnimationFrame(decode);
+      else sub.classList.add('show');
+    })(t0);
+  }
+
+  // ----- hover scramble on rows (450ms, settles left → right) -----
+  document.querySelectorAll('[data-scramble]').forEach(el => {
+    const original = el.textContent;
+    let timer = null;
+    el.closest('.row').addEventListener('pointerenter', () => {
+      if (reduceMotion.matches || timer) return;
+      const start = performance.now(), DUR = 450;
+      timer = setInterval(() => {
+        const p = (performance.now() - start) / DUR;
+        if (p >= 1) { el.textContent = original; clearInterval(timer); timer = null; return; }
+        el.textContent = original.split('').map((ch, i) =>
+          ch === ' ' ? ' ' : (i / original.length < p ? ch : rand(GLYPHS))).join('');
+      }, 34);
+    });
+  });
+
+  // ----- status cells decode on first view -----
+  const dio = new IntersectionObserver(entries => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      dio.unobserve(e.target);
+      const el = e.target, original = el.textContent;
+      if (reduceMotion.matches) continue;
+      const start = performance.now(), DUR = 900;
+      el.textContent = '';
+      const iv = setInterval(() => {
+        const p = (performance.now() - start) / DUR;
+        if (p >= 1) { el.textContent = original; clearInterval(iv); return; }
+        el.textContent = original.split('').map((ch, i) =>
+          ch === ' ' ? ' ' : (i / original.length < p ? ch : rand(GLYPHS))).join('');
+      }, 34);
+    }
+  }, { threshold: 0.5 });
+  document.querySelectorAll('[data-decode]').forEach(el => dio.observe(el));
+</script>
+</body>
+</html>

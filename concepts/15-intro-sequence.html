@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>15 — Intro Sequence · Attention Lab</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-curtain: cubic-bezier(0.76, 0, 0.24, 1);
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px; padding: 14px 20px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 6px 14px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+  }
+
+  /* ---------- preloader ---------- */
+  .loader {
+    position: fixed; inset: 0; z-index: 90; background: #050508;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: clamp(24px, 5vw, 60px);
+  }
+  .loader.gone { display: none; }
+  .loader .mark { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--ink-dim); }
+  .loader .mark b { color: var(--ink); }
+  .loader .count {
+    align-self: flex-end;
+    font-weight: 800; letter-spacing: -0.04em; line-height: 0.9;
+    font-size: clamp(90px, 20vw, 260px);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+  .loader .count em { font-style: normal; font-size: 0.22em; color: var(--accent); vertical-align: super; }
+  .loader .bar {
+    position: absolute; left: 0; bottom: 0; height: 3px; width: 100%;
+    background: rgba(244, 243, 247, 0.08);
+  }
+  .loader .bar i {
+    display: block; height: 100%; width: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transform-origin: left; transform: scaleX(var(--p, 0));
+  }
+
+  /* ---------- curtains ---------- */
+  .curtains { position: fixed; inset: 0; z-index: 80; pointer-events: none; display: flex; }
+  .curtains .panel {
+    flex: 1; background: #0e0e18; transform: translateY(0);
+    border-right: 1px solid rgba(244,243,247,0.03);
+  }
+  .curtains.open .panel { animation: wipe 0.85s var(--ease-curtain) forwards; }
+  .curtains.open .panel:nth-child(2) { animation-delay: 70ms; }
+  .curtains.open .panel:nth-child(3) { animation-delay: 140ms; }
+  .curtains.open .panel:nth-child(4) { animation-delay: 210ms; }
+  @keyframes wipe { to { transform: translateY(-101%); } }
+  .curtains.gone { display: none; }
+
+  /* ---------- hero ---------- */
+  .hero {
+    min-height: 100vh; display: flex; flex-direction: column; justify-content: center;
+    padding: 110px clamp(20px, 7vw, 110px) 70px;
+  }
+  .hero .kicker {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.24em;
+    text-transform: uppercase; color: var(--gold);
+  }
+  .hero h1 {
+    margin: 16px 0 0; font-weight: 800; letter-spacing: -0.032em;
+    font-size: clamp(42px, 8.4vw, 118px); line-height: 0.98; text-transform: uppercase;
+  }
+  .hero h1 .ln { display: block; overflow: hidden; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+  .hero h1 .in { display: block; transform: translateY(112%); }
+  .hero h1 .alt { color: transparent; -webkit-text-stroke: 2px var(--ink); }
+  .hero .foot {
+    display: flex; gap: 34px; flex-wrap: wrap; align-items: center;
+    margin-top: 36px; color: var(--ink-dim); font-size: 15.5px; line-height: 1.6;
+  }
+  .hero .foot p { max-width: 40ch; margin: 0; }
+  .replay {
+    background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink); font: 600 13.5px var(--font-sans); padding: 12px 24px; cursor: pointer;
+    transition: border-color var(--dur-1) ease, background var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  .replay:hover { border-color: var(--ink-dim); background: rgba(244,243,247,0.05); transform: translateY(-2px); }
+  .replay:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  /* staged entrance classes (added by JS after curtains) */
+  .kicker, .hero .foot { opacity: 0; transform: translateY(16px); }
+  body.arrived .hero h1 .in { animation: line-in 0.85s var(--ease-out) forwards; }
+  body.arrived .hero h1 .ln:nth-child(1) .in { animation-delay: 0.10s; }
+  body.arrived .hero h1 .ln:nth-child(2) .in { animation-delay: 0.22s; }
+  body.arrived .hero h1 .ln:nth-child(3) .in { animation-delay: 0.34s; }
+  @keyframes line-in { to { transform: translateY(0); } }
+  body.arrived .kicker { animation: soft-in 0.6s var(--ease-out) 0.55s forwards; }
+  body.arrived .hero .foot { animation: soft-in 0.6s var(--ease-out) 0.7s forwards; }
+  @keyframes soft-in { to { opacity: 1; transform: none; } }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .loader, .curtains { display: none !important; }
+    .hero h1 .in { transform: none; animation: none !important; }
+    .kicker, .hero .foot { opacity: 1; transform: none; animation: none !important; }
+    .replay:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+<div class="loader" id="loader" aria-hidden="true">
+  <div class="mark"><b>Atelier Nord</b> · Portfolio 2026</div>
+  <div class="count"><span id="countNum">00</span><em>%</em></div>
+  <div class="bar"><i id="barFill"></i></div>
+</div>
+<div class="curtains" id="curtains" aria-hidden="true">
+  <div class="panel"></div><div class="panel"></div><div class="panel"></div><div class="panel"></div>
+</div>
+
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">15</span><span class="chrome-name">Intro Sequence</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>Preloader → curtain → hero chain</h2>
+  <p class="about-what">The signature opening of award-site portfolios: a percentage counter builds anticipation, curtain panels wipe upward in a stagger, and the hero text rises through masks — three acts, one continuous gesture.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> anticipation. The counter is a promise (“something is being prepared for you”), the curtain is a theatrical reveal, and the staggered text pays it off. The chain manufactures a moment of arrival that a page which simply appears can never have — first impressions form in under a second, and this owns that second.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> the counter runs ~2.1s with deliberately uneven pacing (fast start, mid-stall, final sprint — real loading rhythms); curtain panels wipe 850ms on cubic-bezier(.76,0,.24,1) with a 70ms stagger; hero lines start 100ms into the wipe so the reveal overlaps the exit (choreography, not a queue). Total: under 3.5s, replayable, and only ever shown once per visit in production.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> the entire intro is skipped — loader and curtains never render, hero text appears immediately. An intro is the definition of non-essential motion.</p>
+</aside>
+
+<main class="stage">
+  <section class="hero">
+    <p class="kicker">Atelier Nord · Design for the built world</p>
+    <h1 id="heroTitle">
+      <span class="ln"><span class="in">Buildings</span></span>
+      <span class="ln"><span class="in alt">begin as</span></span>
+      <span class="ln"><span class="in">arguments</span></span>
+    </h1>
+    <div class="foot">
+      <p>A Copenhagen studio designing libraries, ferry terminals, and one very controversial bus stop. Work speaks below the fold.</p>
+      <button class="replay" id="replayBtn">Replay intro ↺</button>
+    </div>
+  </section>
+</main>
+
+<footer class="hint">Three acts: count, curtain, arrival</footer>
+
+<script>
+  // ----- about panel -----
+  const infoBtn = document.querySelector('.chrome-info');
+  const aboutPanel = document.getElementById('about');
+  infoBtn.addEventListener('click', () => {
+    const open = aboutPanel.hidden;
+    aboutPanel.hidden = !open;
+    infoBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const loader = document.getElementById('loader');
+  const curtains = document.getElementById('curtains');
+  const countNum = document.getElementById('countNum');
+  const barFill = document.getElementById('barFill');
+
+  function runIntro() {
+    if (reduceMotion.matches) {
+      loader.classList.add('gone');
+      curtains.classList.add('gone');
+      document.body.classList.add('arrived');
+      return;
+    }
+    document.body.classList.remove('arrived');
+    loader.classList.remove('gone');
+    curtains.classList.remove('gone');
+    curtains.classList.remove('open');
+    // force restart of curtain animations on replay
+    curtains.querySelectorAll('.panel').forEach(p => { p.style.animation = 'none'; void p.offsetHeight; p.style.animation = ''; });
+
+    // counter with uneven pacing: fast → stall → sprint
+    const t0 = performance.now(), DUR = 2100;
+    (function tick(t) {
+      const p = Math.min((t - t0) / DUR, 1);
+      // piecewise pacing curve
+      let v;
+      if (p < 0.45)      v = p / 0.45 * 62;                     // quick to 62
+      else if (p < 0.72) v = 62 + (p - 0.45) / 0.27 * 14;       // grind to 76
+      else               v = 76 + (p - 0.72) / 0.28 * 24;       // sprint to 100
+      const n = Math.round(v);
+      countNum.textContent = String(n).padStart(2, '0');
+      barFill.style.setProperty('--p', (v / 100).toFixed(3));
+      if (p < 1) { requestAnimationFrame(tick); return; }
+      // act 2: curtains
+      setTimeout(() => {
+        loader.classList.add('gone');
+        curtains.classList.add('open');
+        // act 3: hero begins during the wipe
+        setTimeout(() => document.body.classList.add('arrived'), 100);
+        setTimeout(() => curtains.classList.add('gone'), 1300);
+      }, 180); // beat of silence at 100
+    })(t0);
+  }
+
+  document.getElementById('replayBtn').addEventListener('click', runIntro);
+  runIntro();
+</script>
+</body>
+</html>

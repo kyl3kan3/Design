@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>13 — Change Blindness Lab · Attention Lab</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px; padding: 14px 20px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 6px 14px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+  }
+
+  /* ---------- layout ---------- */
+  .stage { max-width: 980px; margin: 0 auto; padding: 110px clamp(18px, 4vw, 44px) 90px; }
+  .stage-head h1 { font-size: clamp(30px, 4.4vw, 52px); letter-spacing: -0.025em; margin: 0 0 10px; }
+  .stage-head h1 em { font-style: normal; color: var(--hot); }
+  .stage-head p { color: var(--ink-dim); max-width: 62ch; line-height: 1.65; margin: 0 0 30px; font-size: 15.5px; }
+
+  /* controls */
+  .controls {
+    display: flex; flex-wrap: wrap; gap: 14px; align-items: center; margin-bottom: 22px;
+  }
+  .mode {
+    display: inline-flex; background: var(--bg-elev); border: 1px solid var(--line);
+    border-radius: 999px; padding: 4px; gap: 2px;
+  }
+  .mode button {
+    border: none; background: none; color: var(--ink-dim); cursor: pointer;
+    font: 600 13.5px var(--font-sans); padding: 9px 20px; border-radius: 999px;
+    transition: background var(--dur-2) ease, color var(--dur-2) ease;
+  }
+  .mode button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .mode button.sel { color: #0a0a10; }
+  .mode button.sel.cut-btn { background: var(--hot); }
+  .mode button.sel.anim-btn { background: var(--accent-2); }
+  .go-btn {
+    background: var(--accent); color: #fff; border: none; border-radius: 999px;
+    font: 600 14px var(--font-sans); padding: 13px 26px; cursor: pointer;
+    transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-2) ease;
+  }
+  .go-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(124, 92, 255, 0.4); }
+  .go-btn:active { transform: scale(0.97); }
+  .go-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  .score {
+    margin-left: auto; font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-dim);
+    display: flex; gap: 18px;
+  }
+  .score b { color: var(--ink); font-size: 15px; }
+  .score .cut-s b { color: var(--hot); }
+  .score .anim-s b { color: var(--accent-2); }
+
+  /* board */
+  .board-wrap { position: relative; }
+  .board {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  }
+  @media (max-width: 640px) { .board { grid-template-columns: repeat(2, 1fr); } }
+  .tile {
+    background: var(--bg-elev); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px; cursor: pointer; text-align: left; color: var(--ink); font-family: inherit;
+    position: relative; min-height: 118px;
+    transition: border-color var(--dur-2) ease, transform var(--dur-1) var(--ease-out);
+  }
+  .tile:hover { border-color: rgba(244, 243, 247, 0.22); }
+  .tile:active { transform: scale(0.98); }
+  .tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .tile .k {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--ink-dim);
+  }
+  .tile .v {
+    font-size: 26px; font-weight: 800; letter-spacing: -0.02em; margin-top: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+  .tile .v em { font-style: normal; font-size: 0.55em; color: var(--ink-dim); font-weight: 600; }
+  .tile .bar {
+    height: 4px; border-radius: 2px; background: rgba(244,243,247,0.1);
+    margin-top: 12px; overflow: hidden;
+  }
+  .tile .bar i {
+    display: block; height: 100%; border-radius: 2px; background: var(--tone);
+    width: calc(var(--p) * 1%);
+  }
+  /* animated-mode change choreography */
+  .tile.changed-anim .bar i { transition: width 0.6s var(--ease-out); }
+  .tile.changed-anim { animation: tile-glow 1.1s var(--ease-out); }
+  @keyframes tile-glow {
+    0% { box-shadow: 0 0 0 0 rgba(41, 230, 167, 0); border-color: var(--line); }
+    25% { box-shadow: 0 0 0 4px rgba(41, 230, 167, 0.25); border-color: rgba(41, 230, 167, 0.7); }
+    100% { box-shadow: 0 0 0 0 rgba(41, 230, 167, 0); border-color: var(--line); }
+  }
+  /* flicker mask for cut mode (the lab paradigm's blank field) */
+  .mask {
+    position: absolute; inset: -6px; border-radius: 16px; background: var(--bg);
+    opacity: 0; pointer-events: none; z-index: 5;
+  }
+  .mask.flash { opacity: 1; }
+
+  /* verdict line */
+  .verdict {
+    min-height: 26px; margin-top: 18px; font-size: 14.5px; color: var(--ink-dim);
+  }
+  .verdict.good { color: var(--accent-2); }
+  .verdict.bad { color: var(--hot); }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .tile.changed-anim { animation: none; border-color: rgba(41, 230, 167, 0.8); box-shadow: 0 0 0 3px rgba(41,230,167,0.25); }
+    .tile.changed-anim .bar i { transition: none; }
+    .go-btn, .go-btn:hover, .go-btn:active { transform: none; }
+  }
+</style>
+</head>
+<body>
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">13</span><span class="chrome-name">Change Blindness Lab</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>Change blindness: cut vs. motion</h2>
+  <p class="about-what">A self-experiment. One of nine metrics changes each round. In <strong>Cut</strong> mode the change happens during a 140ms blank flicker — the classic lab paradigm. In <strong>Motion</strong> mode the same change is animated. Try both and compare your hit rates.</p>
+  <p class="about-why"><strong>Why it matters:</strong> vision is functionally blind during saccades, blinks, and flickers; an instant swap that coincides with one goes unseen (lab subjects needed 20–40 flicker cycles to find a single altered detail). Animation defeats change blindness because peripheral vision catches motion automatically — this is the strongest <em>functional</em> argument for UI animation, beyond aesthetics.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> the flicker mask shows for 140ms (in the 60–250ms range used in the literature); the animated variant moves only the changed region — value rolls over 600ms, bar eases on cubic-bezier(.16,1,.3,1), one 1.1s glow pulse, everything else stays static so the one change owns the contrast.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> the animated mode substitutes a static highlight ring and instant value swap — change remains findable through color contrast rather than movement, and the flicker in Cut mode still works (it contains no motion).</p>
+</aside>
+
+<main class="stage">
+  <div class="stage-head">
+    <h1>Spot the change. <em>If you can.</em></h1>
+    <p>Grid of live metrics from a fictional ops dashboard. Press <strong>Change something</strong>, then click the tile you think changed. Cut mode hides the change behind a flicker — the way real dashboards change while you blink, saccade, or glance away. Motion mode animates it.</p>
+  </div>
+
+  <div class="controls">
+    <div class="mode" role="radiogroup" aria-label="Change mode">
+      <button class="cut-btn sel" id="cutBtn" role="radio" aria-checked="true">Cut</button>
+      <button class="anim-btn" id="animBtn" role="radio" aria-checked="false">Motion</button>
+    </div>
+    <button class="go-btn" id="goBtn">Change something</button>
+    <div class="score">
+      <span class="cut-s">Cut: <b id="cutScore">0/0</b></span>
+      <span class="anim-s">Motion: <b id="animScore">0/0</b></span>
+    </div>
+  </div>
+
+  <div class="board-wrap">
+    <div class="board" id="board"></div>
+    <div class="mask" id="mask" aria-hidden="true"></div>
+  </div>
+  <p class="verdict" id="verdict" role="status">Pick a mode, make a change, then click the tile that changed.</p>
+</main>
+
+<footer class="hint">Run 5 rounds in each mode — compare your scores</footer>
+
+<script>
+  // ----- about panel -----
+  const infoBtn = document.querySelector('.chrome-info');
+  const aboutPanel = document.getElementById('about');
+  infoBtn.addEventListener('click', () => {
+    const open = aboutPanel.hidden;
+    aboutPanel.hidden = !open;
+    infoBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ----- metrics model -----
+  const METRICS = [
+    { k: 'Requests / s',  v: 1240, unit: '',    tone: '#7c5cff', p: 62 },
+    { k: 'p95 latency',   v: 184,  unit: 'ms',  tone: '#29e6a7', p: 37 },
+    { k: 'Error rate',    v: 0.42, unit: '%',   tone: '#ff4d6d', p: 21, dec: 2 },
+    { k: 'Active users',  v: 8931, unit: '',    tone: '#ffb74d', p: 74 },
+    { k: 'Queue depth',   v: 57,   unit: '',    tone: '#7c5cff', p: 29 },
+    { k: 'Cache hit',     v: 94.1, unit: '%',   tone: '#29e6a7', p: 94, dec: 1 },
+    { k: 'Deploys today', v: 12,   unit: '',    tone: '#ffb74d', p: 48 },
+    { k: 'Open incidents',v: 2,    unit: '',    tone: '#ff4d6d', p: 12 },
+    { k: 'CPU (fleet)',   v: 61,   unit: '%',   tone: '#7c5cff', p: 61 },
+  ];
+
+  const board = document.getElementById('board');
+  const fmt = m => m.dec ? m.v.toFixed(m.dec) : Math.round(m.v).toLocaleString('en-US');
+  METRICS.forEach((m, i) => {
+    const t = document.createElement('button');
+    t.className = 'tile';
+    t.style.setProperty('--tone', m.tone);
+    t.style.setProperty('--p', m.p);
+    t.innerHTML = `<span class="k">${m.k}</span><div class="v"><span class="num">${fmt(m)}</span><em>${m.unit}</em></div><div class="bar"><i></i></div>`;
+    t.addEventListener('click', () => guess(i, t));
+    board.appendChild(t);
+  });
+
+  // ----- game state -----
+  let mode = 'cut';
+  let target = -1;      // index of the changed tile, -1 = no round armed
+  let scores = { cut: [0, 0], anim: [0, 0] };
+  const verdict = document.getElementById('verdict');
+  const mask = document.getElementById('mask');
+  const cutBtn = document.getElementById('cutBtn');
+  const animBtn = document.getElementById('animBtn');
+
+  function setMode(m) {
+    mode = m;
+    cutBtn.classList.toggle('sel', m === 'cut');
+    animBtn.classList.toggle('sel', m === 'anim');
+    cutBtn.setAttribute('aria-checked', String(m === 'cut'));
+    animBtn.setAttribute('aria-checked', String(m === 'anim'));
+  }
+  cutBtn.addEventListener('click', () => setMode('cut'));
+  animBtn.addEventListener('click', () => setMode('anim'));
+
+  function applyChange(i) {
+    const m = METRICS[i];
+    // nudge the value 12-40% and the bar with it
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    const f = 1 + dir * (0.12 + Math.random() * 0.28);
+    m.v = m.dec ? +(m.v * f).toFixed(m.dec) : Math.max(1, Math.round(m.v * f));
+    m.p = Math.min(98, Math.max(4, Math.round(m.p * f)));
+    const tile = board.children[i];
+    tile.querySelector('.num').textContent = fmt(m);
+    tile.style.setProperty('--p', m.p);
+  }
+
+  document.getElementById('goBtn').addEventListener('click', () => {
+    if (target >= 0) return; // round already armed
+    target = Math.floor(Math.random() * METRICS.length);
+    verdict.className = 'verdict';
+    verdict.textContent = '…something just changed. Click the tile.';
+
+    if (mode === 'cut') {
+      // flicker paradigm: blank the field for 140ms, change during the blank
+      mask.classList.add('flash');
+      setTimeout(() => {
+        applyChange(target);
+        setTimeout(() => mask.classList.remove('flash'), 70);
+      }, 70);
+    } else {
+      const tile = board.children[target];
+      tile.classList.remove('changed-anim');
+      void tile.offsetWidth;
+      tile.classList.add('changed-anim');
+      if (reduceMotion.matches) {
+        applyChange(target);
+        setTimeout(() => tile.classList.remove('changed-anim'), 1600);
+      } else {
+        // roll the number over 600ms
+        const m = METRICS[target];
+        const from = m.v;
+        applyChange(target); // updates model + bar (bar transitions via CSS)
+        const to = m.v;
+        const numEl = tile.querySelector('.num');
+        const t0 = performance.now();
+        (function roll(t) {
+          const p = Math.min((t - t0) / 600, 1);
+          const e = 1 - Math.pow(1 - p, 3);
+          const cur = from + (to - from) * e;
+          numEl.textContent = m.dec ? cur.toFixed(m.dec) : Math.round(cur).toLocaleString('en-US');
+          if (p < 1) requestAnimationFrame(roll);
+        })(t0);
+        setTimeout(() => tile.classList.remove('changed-anim'), 1200);
+      }
+    }
+  });
+
+  function guess(i, tile) {
+    if (target < 0) { verdict.className = 'verdict'; verdict.textContent = 'Arm a round first — press “Change something”.'; return; }
+    const key = mode === 'cut' ? 'cut' : 'anim';
+    scores[key][1]++;
+    const hit = i === target;
+    if (hit) scores[key][0]++;
+    document.getElementById('cutScore').textContent = `${scores.cut[0]}/${scores.cut[1]}`;
+    document.getElementById('animScore').textContent = `${scores.anim[0]}/${scores.anim[1]}`;
+    verdict.className = 'verdict ' + (hit ? 'good' : 'bad');
+    const name = METRICS[target].k;
+    verdict.textContent = hit
+      ? `Correct — “${name}” changed. ${mode === 'cut' ? 'Impressive; most people miss these.' : 'The animation did half the work for you.'}`
+      : `Miss — it was “${name}”. ${mode === 'cut' ? 'That’s change blindness: the flicker ate the transient.' : 'Even with motion, timing matters.'}`;
+    target = -1;
+  }
+</script>
+</body>
+</html>

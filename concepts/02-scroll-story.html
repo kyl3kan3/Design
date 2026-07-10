@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>02 — Scroll-Driven Story · Attention Lab</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+    --dur-3: 600ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px; padding: 14px 20px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 6px 14px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+  }
+
+  /* ---------- scroll progress bar ---------- */
+  .progress {
+    position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 60;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    transform-origin: 0 50%; transform: scaleX(0);
+  }
+  /* native scroll-driven animation where supported; JS fallback drives --p */
+  @supports (animation-timeline: scroll()) {
+    .progress { animation: grow linear; animation-timeline: scroll(root); }
+    @keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+  }
+
+  /* ---------- opening ---------- */
+  .opening {
+    min-height: 92vh; display: flex; flex-direction: column; justify-content: center;
+    padding: 96px clamp(20px, 7vw, 110px) 48px;
+  }
+  .kicker {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--accent-2);
+  }
+  .opening h1 {
+    margin: 16px 0 0; font-weight: 800; letter-spacing: -0.03em;
+    font-size: clamp(40px, 7.5vw, 104px); line-height: 1.0; text-transform: uppercase;
+  }
+  .opening h1 span { color: var(--accent); }
+  .opening .lede { max-width: 46ch; color: var(--ink-dim); font-size: 17px; line-height: 1.65; margin-top: 24px; }
+
+  /* ---------- reveal-on-enter ---------- */
+  .reveal { opacity: 0; transform: translateY(36px); }
+  .reveal.is-visible {
+    opacity: 1; transform: none;
+    transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+  }
+  .reveal[data-delay="1"].is-visible { transition-delay: 0.08s; }
+  .reveal[data-delay="2"].is-visible { transition-delay: 0.16s; }
+  .reveal[data-delay="3"].is-visible { transition-delay: 0.24s; }
+
+  /* ---------- story chapters ---------- */
+  .chapter { padding: 18vh clamp(20px, 7vw, 110px); max-width: 1100px; }
+  .chapter-num { font-family: var(--font-mono); font-size: 12px; color: var(--accent); letter-spacing: 0.2em; }
+  .chapter h2 { font-size: clamp(30px, 4.4vw, 56px); letter-spacing: -0.02em; margin: 10px 0 18px; }
+  .chapter p { color: var(--ink-dim); font-size: 17px; line-height: 1.7; max-width: 58ch; }
+
+  /* scroll-linked text fill: dim text fills to bright as it crosses the viewport */
+  .fill-text {
+    font-size: clamp(26px, 3.6vw, 46px); font-weight: 700; line-height: 1.28;
+    letter-spacing: -0.015em; max-width: 24ch;
+    background: linear-gradient(90deg, var(--ink) 50%, rgba(244,243,247,0.16) 50%);
+    background-size: 200% 100%;
+    background-position-x: calc(100% - var(--fill, 0%));
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+  }
+
+  /* ---------- pinned scene ---------- */
+  .pin-wrap { height: 320vh; position: relative; }
+  .pin {
+    position: sticky; top: 0; height: 100vh; overflow: hidden;
+    display: grid; place-items: center;
+  }
+  .mountain { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .mountain svg { width: 100%; height: 100%; display: block; }
+  .ridge-back  { transform: translateY(calc(var(--prog, 0) * -4vh)); }
+  .ridge-mid   { transform: translateY(calc(var(--prog, 0) * -9vh)); }
+  .ridge-front { transform: translateY(calc(var(--prog, 0) * -16vh)); }
+  .pin-stats {
+    position: relative; z-index: 2; text-align: center;
+    display: flex; gap: clamp(28px, 6vw, 90px); flex-wrap: wrap; justify-content: center;
+    padding: 0 20px;
+  }
+  .stat .num {
+    font-weight: 800; font-size: clamp(40px, 6.5vw, 92px); letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .stat .num em { font-style: normal; font-size: 0.45em; color: var(--ink-dim); margin-left: 4px; }
+  .stat .label {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--ink-dim); margin-top: 10px;
+  }
+  .stat:nth-child(1) .num { color: var(--accent-2); }
+  .stat:nth-child(2) .num { color: var(--gold); }
+  .stat:nth-child(3) .num { color: var(--accent); }
+
+  .closer { padding: 22vh clamp(20px, 7vw, 110px) 26vh; max-width: 1100px; }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .fill-text { --fill: 100%; }
+    .ridge-back, .ridge-mid, .ridge-front { transform: none !important; }
+    .progress { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="progress" id="progress" aria-hidden="true"></div>
+
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">02</span><span class="chrome-name">Scroll-Driven Story</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>Scroll-driven storytelling</h2>
+  <p class="about-what">A narrative page where scroll position drives everything: a progress bar, staggered section reveals, a text passage that “fills” with brightness as you read, a pinned parallax scene, and counters that roll up on arrival.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> tying motion to scroll makes the reader the animator — the page responds 1:1 to their hand, which sustains engagement far longer than autoplay. Withholding each chapter until it enters view builds a curiosity loop: every swipe is rewarded.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> progress bar uses native CSS <code>animation-timeline: scroll()</code> with a rAF fallback; reveals enter over 700ms on cubic-bezier(.16,1,.3,1) with 80ms stagger, triggered at 18% visibility; the pinned scene maps 320vh of scroll to parallax offsets (back ridge 4vh, front ridge 16vh); counters ease out over 1.4s with tabular numerals so digits don't jitter.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> all content is visible immediately, parallax is frozen, the text fill renders fully bright, and counters show final values without rolling.</p>
+</aside>
+
+<main class="stage">
+  <section class="opening">
+    <p class="kicker">Terra/Form · Field Notes 03</p>
+    <h1>How a<br>mountain<br><span>is made</span></h1>
+    <p class="lede">Eight kilometres of rock don't rise politely. They are shoved, folded, and carved over sixty million years. Scroll — the story moves when you do.</p>
+  </section>
+
+  <section class="chapter">
+    <p class="chapter-num reveal">CH. 01 — COLLISION</p>
+    <h2 class="reveal" data-delay="1">Two plates, one argument</h2>
+    <p class="reveal" data-delay="2">Around sixty million years ago the Indian plate met Eurasia at the speed
+    fingernails grow. Neither side yielded. The crust had nowhere to go but up — and it has
+    been going up, millimetre by furious millimetre, ever since.</p>
+  </section>
+
+  <section class="chapter">
+    <p class="fill-text" data-fill>The crust buckled like sheet metal in a slow-motion crash — and the wreckage became the highest place on Earth.</p>
+  </section>
+
+  <div class="pin-wrap" id="pinWrap">
+    <div class="pin">
+      <div class="mountain" aria-hidden="true">
+        <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax slice">
+          <g class="ridge-back">
+            <path d="M0 640 L200 480 L340 560 L520 400 L700 540 L900 430 L1100 560 L1280 470 L1440 580 L1440 900 L0 900 Z" fill="#181828"/>
+          </g>
+          <g class="ridge-mid">
+            <path d="M0 720 L160 590 L330 660 L520 500 L720 640 L950 520 L1150 650 L1320 570 L1440 660 L1440 900 L0 900 Z" fill="#22223a"/>
+          </g>
+          <g class="ridge-front">
+            <path d="M0 810 L180 690 L360 760 L560 620 L780 750 L1000 650 L1220 760 L1440 690 L1440 900 L0 900 Z" fill="#2e2c4e"/>
+          </g>
+        </svg>
+      </div>
+      <div class="pin-stats">
+        <div class="stat reveal">
+          <div class="num"><span data-count="5" data-decimals="0">0</span><em>cm/yr</em></div>
+          <div class="label">Plate velocity</div>
+        </div>
+        <div class="stat reveal" data-delay="1">
+          <div class="num"><span data-count="8849" data-decimals="0">0</span><em>m</em></div>
+          <div class="label">Summit today</div>
+        </div>
+        <div class="stat reveal" data-delay="2">
+          <div class="num"><span data-count="60" data-decimals="0">0</span><em>M&nbsp;yrs</em></div>
+          <div class="label">In the making</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="chapter closer">
+    <p class="chapter-num reveal">CH. 02 — EROSION</p>
+    <h2 class="reveal" data-delay="1">The sculptor arrives</h2>
+    <p class="reveal" data-delay="2">Ice and water finish what the collision started. Glaciers grind the ridgelines
+    into blades; monsoon rivers haul the debris to the sea. A mountain is not a thing —
+    it is a rate: uplift racing erosion, forever, in stone.</p>
+  </section>
+</main>
+
+<footer class="hint">Scroll to drive the story</footer>
+
+<script>
+  // ----- about panel -----
+  const infoBtn = document.querySelector('.chrome-info');
+  const aboutPanel = document.getElementById('about');
+  infoBtn.addEventListener('click', () => {
+    const open = aboutPanel.hidden;
+    aboutPanel.hidden = !open;
+    infoBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ----- progress bar fallback where scroll-driven animations are unsupported -----
+  const progress = document.getElementById('progress');
+  const nativeTimeline = CSS.supports('animation-timeline: scroll()');
+
+  // ----- reveal on enter -----
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries) {
+      if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
+    }
+  }, { threshold: 0.18 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // ----- counters roll up when the pinned stats arrive -----
+  function runCounter(el) {
+    if (reduceMotion.matches) { el.textContent = (+el.dataset.count).toLocaleString('en-US'); return; }
+    const target = +el.dataset.count;
+    const t0 = performance.now(), DUR = 1400;
+    (function tick(t) {
+      const p = Math.min((t - t0) / DUR, 1);
+      const eased = 1 - Math.pow(1 - p, 3); // cubic ease-out
+      el.textContent = Math.round(target * eased).toLocaleString('en-US');
+      if (p < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+  const cio = new IntersectionObserver(entries => {
+    for (const e of entries) {
+      if (e.isIntersecting) { runCounter(e.target); cio.unobserve(e.target); }
+    }
+  }, { threshold: 0.6 });
+  document.querySelectorAll('[data-count]').forEach(el => cio.observe(el));
+
+  // ----- scroll-linked effects (rAF, passive) -----
+  const pinWrap = document.getElementById('pinWrap');
+  const fills = [...document.querySelectorAll('[data-fill]')];
+  let ticking = false;
+
+  function onScroll() {
+    ticking = false;
+    if (!nativeTimeline) {
+      const doc = document.documentElement;
+      const p = doc.scrollTop / (doc.scrollHeight - doc.clientHeight);
+      progress.style.transform = `scaleX(${p})`;
+    }
+    if (reduceMotion.matches) return;
+
+    // pinned parallax progress: 0 → 1 across the 320vh wrapper
+    const r = pinWrap.getBoundingClientRect();
+    const total = r.height - innerHeight;
+    const prog = Math.min(Math.max(-r.top / total, 0), 1);
+    pinWrap.style.setProperty('--prog', prog.toFixed(4));
+
+    // text fill: fills as the block travels the middle half of the viewport
+    for (const el of fills) {
+      const fr = el.getBoundingClientRect();
+      const p = 1 - (fr.top - innerHeight * 0.15) / (innerHeight * 0.55);
+      el.style.setProperty('--fill', `${Math.min(Math.max(p, 0), 1) * 100}%`);
+    }
+  }
+  addEventListener('scroll', () => {
+    if (!ticking) { ticking = true; requestAnimationFrame(onScroll); }
+  }, { passive: true });
+  onScroll();
+</script>
+</body>
+</html>

@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>03 — Micro-Interactions · Attention Lab</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-snap: cubic-bezier(0.2, 0, 0, 1);
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1); /* overshoot */
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+    --dur-3: 600ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px; padding: 14px 20px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 6px 14px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+  }
+
+  /* ---------- layout ---------- */
+  .stage { min-height: 100vh; padding: 110px clamp(20px, 5vw, 72px) 90px; max-width: 1240px; margin: 0 auto; }
+  .stage-head h1 { font-size: clamp(32px, 4.5vw, 56px); letter-spacing: -0.025em; margin: 0 0 8px; }
+  .stage-head h1 em { font-style: normal; color: var(--accent-2); }
+  .stage-head p { color: var(--ink-dim); max-width: 56ch; line-height: 1.65; margin: 0 0 44px; }
+  .grid {
+    display: grid; gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  }
+  .station {
+    background: var(--bg-elev); border: 1px solid var(--line); border-radius: 16px;
+    padding: 26px; min-height: 250px;
+    display: flex; flex-direction: column;
+  }
+  .station-label {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--ink-dim); margin-bottom: 4px;
+  }
+  .station-note { font-size: 12.5px; color: var(--ink-dim); opacity: 0.75; margin-top: auto; padding-top: 16px; }
+  .station-body { flex: 1; display: grid; place-items: center; padding: 18px 0; }
+
+  /* ---------- 1 · magnetic button ---------- */
+  .magnet-zone { position: relative; display: grid; place-items: center; width: 100%; height: 130px; }
+  .btn-magnet {
+    position: relative; overflow: hidden;
+    background: var(--accent); border: none; color: #fff; cursor: pointer;
+    font: 600 15px/1 var(--font-sans); letter-spacing: 0.01em;
+    padding: 16px 34px; border-radius: 999px;
+    will-change: transform;
+    transition: box-shadow var(--dur-2) ease;
+  }
+  .btn-magnet:hover { box-shadow: 0 8px 32px rgba(124, 92, 255, 0.45); }
+  .btn-magnet:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  .btn-magnet .shine {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
+    transform: translateX(-110%);
+  }
+  .btn-magnet:hover .shine { transform: translateX(110%); transition: transform 650ms ease; }
+  .btn-magnet .inner { position: relative; display: inline-block; will-change: transform; }
+
+  /* ---------- 2 · heart burst ---------- */
+  .heart-wrap { position: relative; }
+  .btn-heart {
+    background: none; border: 1px solid var(--line); border-radius: 999px; cursor: pointer;
+    width: 74px; height: 74px; display: grid; place-items: center;
+    transition: border-color var(--dur-2) ease, background var(--dur-2) ease;
+  }
+  .btn-heart:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .btn-heart svg { width: 30px; height: 30px; fill: none; stroke: var(--ink-dim); stroke-width: 1.8; transition: stroke var(--dur-1) ease; }
+  .btn-heart:hover svg { stroke: var(--hot); }
+  .btn-heart.liked { border-color: rgba(255, 77, 109, 0.5); background: rgba(255, 77, 109, 0.08); }
+  .btn-heart.liked svg { fill: var(--hot); stroke: var(--hot); animation: heart-pop 0.45s var(--ease-bounce); }
+  @keyframes heart-pop {
+    0% { transform: scale(0); } 55% { transform: scale(1.25); } 100% { transform: scale(1); }
+  }
+  .particle {
+    position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; border-radius: 50%;
+    pointer-events: none;
+    animation: burst 0.65s var(--ease-out) forwards;
+  }
+  @keyframes burst {
+    from { transform: translate(-50%, -50%) translate(0, 0) scale(1); opacity: 1; }
+    to   { transform: translate(-50%, -50%) translate(var(--dx), var(--dy)) scale(0.2); opacity: 0; }
+  }
+
+  /* ---------- 3 · squash-stretch toggle ---------- */
+  .toggle {
+    --w: 84px;
+    width: var(--w); height: 44px; border-radius: 999px; border: none; cursor: pointer;
+    background: #23233a; position: relative;
+    transition: background var(--dur-2) ease;
+  }
+  .toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .toggle[aria-checked="true"] { background: var(--accent-2); }
+  .knob {
+    position: absolute; top: 4px; left: 4px; width: 36px; height: 36px; border-radius: 999px;
+    background: #fff;
+    transition: transform 0.38s var(--ease-bounce), scale 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  }
+  .toggle[aria-checked="true"] .knob { transform: translateX(40px); }
+  .toggle:active .knob { scale: 1.15 0.85; } /* squash on press */
+
+  /* ---------- 4 · morphing submit ---------- */
+  .btn-morph {
+    position: relative; border: none; cursor: pointer; color: #0a0a10;
+    background: var(--accent-2); border-radius: 12px;
+    font: 600 15px/1 var(--font-sans);
+    width: 190px; height: 52px;
+    transition: width 0.45s var(--ease-snap), border-radius 0.45s var(--ease-snap),
+                background 0.3s ease, color 0.2s ease;
+  }
+  .btn-morph:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  .btn-morph .m-label { transition: opacity 0.15s ease; }
+  .btn-morph.working { width: 52px; border-radius: 999px; background: #23233a; pointer-events: none; }
+  .btn-morph.working .m-label { opacity: 0; }
+  .btn-morph .spinner {
+    position: absolute; inset: 0; margin: auto; width: 22px; height: 22px;
+    border-radius: 50%; border: 2.5px solid rgba(244,243,247,0.2); border-top-color: var(--accent-2);
+    opacity: 0; animation: none;
+  }
+  .btn-morph.working .spinner { opacity: 1; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .btn-morph.done { width: 52px; border-radius: 999px; background: var(--accent-2); pointer-events: none; }
+  .btn-morph.done .spinner { display: none; }
+  .btn-morph .check {
+    position: absolute; inset: 0; margin: auto; width: 22px; height: 22px;
+    stroke: #0a0a10; stroke-width: 3; fill: none;
+    stroke-dasharray: 24; stroke-dashoffset: 24;
+  }
+  .btn-morph.done .check { animation: draw 0.4s var(--ease-out) 0.1s forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+
+  /* ---------- 5 · error shake ---------- */
+  .field { display: flex; gap: 10px; width: 100%; max-width: 320px; }
+  .field input {
+    flex: 1; min-width: 0; background: #14141f; border: 1px solid var(--line); border-radius: 10px;
+    color: var(--ink); font: 15px var(--font-sans); padding: 13px 14px;
+    transition: border-color var(--dur-2) ease, box-shadow var(--dur-2) ease;
+  }
+  .field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(124,92,255,0.22); }
+  .field input.error { border-color: var(--hot); box-shadow: 0 0 0 3px rgba(255,77,109,0.18); }
+  .field .go {
+    background: #23233a; color: var(--ink); border: none; border-radius: 10px;
+    padding: 0 18px; cursor: pointer; font: 600 14px var(--font-sans);
+    transition: background var(--dur-1) ease;
+  }
+  .field .go:hover { background: #2d2d4a; }
+  .field .go:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .shake { animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+  @keyframes shake {
+    10%, 90% { transform: translateX(-1px); }
+    20%, 80% { transform: translateX(2px); }
+    30%, 50%, 70% { transform: translateX(-4px); }
+    40%, 60% { transform: translateX(4px); }
+  }
+  .field-msg { font-size: 12.5px; color: var(--hot); min-height: 18px; margin-top: 8px; width: 100%; max-width: 320px; }
+  .field-msg.ok { color: var(--accent-2); }
+
+  /* ---------- 6 · star cascade ---------- */
+  .stars { display: flex; gap: 6px; }
+  .star {
+    background: none; border: none; cursor: pointer; padding: 4px;
+    transition: transform 0.25s var(--ease-bounce);
+  }
+  .star:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+  .star svg { width: 30px; height: 30px; fill: #23233a; stroke: var(--ink-dim); stroke-width: 1; transition: fill var(--dur-1) ease; display: block; }
+  .star.lit svg { fill: var(--gold); stroke: var(--gold); }
+  .star.pop { animation: star-pop 0.35s var(--ease-bounce); }
+  @keyframes star-pop { 50% { transform: scale(1.35) rotate(8deg); } }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .btn-morph.working .spinner { animation: spin 1.5s linear infinite !important; animation-duration: 1.5s !important; }
+  }
+</style>
+</head>
+<body>
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">03</span><span class="chrome-name">Micro-Interactions</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>Micro-interactions &amp; magnetic elements</h2>
+  <p class="about-what">Six interaction stations: a magnetic button, a particle-burst like, a squash-and-stretch toggle, a morphing submit, an error shake, and a cascading star rating.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> instant, physical feedback makes an interface feel alive — each response arrives inside the ~100ms window where cause and effect feel simultaneous. Overshoot and squash borrow real-world physics, so the eye reads the element as an object, not a pixel.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> magnet pulls at 35% of cursor offset within a 120px radius and springs home with a lerp of 0.12/frame; pops use cubic-bezier(.34,1.56,.64,1) overshoot at 250–450ms; the submit morph runs 450ms on an emphasized curve, then draws its check via stroke-dashoffset in 400ms; the error shake is ±4px for 400ms — enough to notice, too brief to annoy.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> magnetism and particle bursts are disabled; state changes (like, toggle, success, error) become instant color/fill swaps, and the spinner slows rather than spins fast.</p>
+</aside>
+
+<main class="stage">
+  <div class="stage-head">
+    <h1>Feedback you can <em>feel</em></h1>
+    <p>Tactile — a feedback library for product teams. Every control below answers the hand within 100&nbsp;milliseconds. Click, toggle, and break things on purpose.</p>
+  </div>
+
+  <div class="grid">
+    <section class="station">
+      <h2 class="station-label">01 · Magnetic pull</h2>
+      <div class="station-body">
+        <div class="magnet-zone" id="magnetZone">
+          <button class="btn-magnet" id="magnetBtn">
+            <span class="shine"></span>
+            <span class="inner">Start free trial</span>
+          </button>
+        </div>
+      </div>
+      <p class="station-note">Attraction radius 120px · pull 35% · spring-back lerp 0.12</p>
+    </section>
+
+    <section class="station">
+      <h2 class="station-label">02 · Burst of delight</h2>
+      <div class="station-body">
+        <div class="heart-wrap" id="heartWrap">
+          <button class="btn-heart" id="heartBtn" aria-pressed="false" aria-label="Like">
+            <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.9-9.7-9.2C.7 8.6 2.6 5 6 5c2 0 3.4 1.1 4.2 2.4L12 9l1.8-1.6C14.6 6.1 16 5 18 5c3.4 0 5.3 3.6 3.7 6.8C19.5 16.1 12 21 12 21z"/></svg>
+          </button>
+        </div>
+      </div>
+      <p class="station-note">12 particles · 650ms decay · heart pops with 25% overshoot</p>
+    </section>
+
+    <section class="station">
+      <h2 class="station-label">03 · Squash &amp; stretch</h2>
+      <div class="station-body">
+        <button class="toggle" id="toggle" role="switch" aria-checked="false" aria-label="Enable notifications">
+          <span class="knob"></span>
+        </button>
+      </div>
+      <p class="station-note">Knob squashes 15% on press, travels with bounce overshoot</p>
+    </section>
+
+    <section class="station">
+      <h2 class="station-label">04 · Morphing submit</h2>
+      <div class="station-body">
+        <button class="btn-morph" id="morphBtn">
+          <span class="m-label">Place order</span>
+          <span class="spinner" aria-hidden="true"></span>
+          <svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        </button>
+      </div>
+      <p class="station-note">Button → spinner → check. One element, three states, no jump cuts</p>
+    </section>
+
+    <section class="station">
+      <h2 class="station-label">05 · Constructive failure</h2>
+      <div class="station-body" style="display:block; padding-top:34px;">
+        <form class="field" id="emailForm" novalidate>
+          <input type="email" id="emailInput" placeholder="you@studio.com" aria-label="Email address">
+          <button class="go" type="submit">Join</button>
+        </form>
+        <p class="field-msg" id="fieldMsg" role="status"></p>
+      </div>
+      <p class="station-note">Invalid input shakes ±4px for 400ms — a physical head-shake “no”</p>
+    </section>
+
+    <section class="station">
+      <h2 class="station-label">06 · Cascading reward</h2>
+      <div class="station-body">
+        <div class="stars" id="stars" role="radiogroup" aria-label="Rate this">
+          <button class="star" role="radio" aria-checked="false" aria-label="1 star"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg></button>
+          <button class="star" role="radio" aria-checked="false" aria-label="2 stars"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg></button>
+          <button class="star" role="radio" aria-checked="false" aria-label="3 stars"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg></button>
+          <button class="star" role="radio" aria-checked="false" aria-label="4 stars"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg></button>
+          <button class="star" role="radio" aria-checked="false" aria-label="5 stars"><svg viewBox="0 0 24 24"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2 5.8 20.9l1.6-7L2 9.2l7.1-.6z"/></svg></button>
+        </div>
+      </div>
+      <p class="station-note">Stars light in a 60ms cascade — sequential reward beats simultaneous</p>
+    </section>
+  </div>
+</main>
+
+<footer class="hint">Click everything</footer>
+
+<script>
+  // ----- about panel -----
+  const infoBtn = document.querySelector('.chrome-info');
+  const aboutPanel = document.getElementById('about');
+  infoBtn.addEventListener('click', () => {
+    const open = aboutPanel.hidden;
+    aboutPanel.hidden = !open;
+    infoBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ----- 1 · magnetic button: lerp toward cursor inside zone, spring home outside -----
+  {
+    const zone = document.getElementById('magnetZone');
+    const btn = document.getElementById('magnetBtn');
+    const inner = btn.querySelector('.inner');
+    let tx = 0, ty = 0, x = 0, y = 0, running = false;
+
+    function loop() {
+      x += (tx - x) * 0.12;
+      y += (ty - y) * 0.12;
+      btn.style.transform = `translate(${x}px, ${y}px)`;
+      inner.style.transform = `translate(${x * 0.35}px, ${y * 0.35}px)`; // label leads slightly
+      if (Math.abs(tx - x) > 0.1 || Math.abs(ty - y) > 0.1 || tx || ty) {
+        requestAnimationFrame(loop);
+      } else { running = false; btn.style.transform = ''; inner.style.transform = ''; }
+    }
+    function start() { if (!running) { running = true; requestAnimationFrame(loop); } }
+
+    if (!reduceMotion.matches) {
+      zone.addEventListener('pointermove', e => {
+        const r = btn.getBoundingClientRect();
+        const dx = e.clientX - (r.left + r.width / 2);
+        const dy = e.clientY - (r.top + r.height / 2);
+        if (Math.hypot(dx, dy) < 120) { tx = dx * 0.35; ty = dy * 0.35; }
+        else { tx = 0; ty = 0; }
+        start();
+      });
+      zone.addEventListener('pointerleave', () => { tx = 0; ty = 0; start(); });
+    }
+  }
+
+  // ----- 2 · heart burst -----
+  {
+    const btn = document.getElementById('heartBtn');
+    const wrap = document.getElementById('heartWrap');
+    const COLORS = ['#ff4d6d', '#ffb74d', '#7c5cff', '#29e6a7'];
+    btn.addEventListener('click', () => {
+      const liked = btn.classList.toggle('liked');
+      btn.setAttribute('aria-pressed', String(liked));
+      if (!liked || reduceMotion.matches) return;
+      for (let i = 0; i < 12; i++) {
+        const p = document.createElement('span');
+        p.className = 'particle';
+        const angle = (i / 12) * Math.PI * 2 + Math.random() * 0.4;
+        const dist = 44 + Math.random() * 26;
+        p.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);
+        p.style.setProperty('--dy', `${Math.sin(angle) * dist}px`);
+        p.style.background = COLORS[i % COLORS.length];
+        wrap.appendChild(p);
+        p.addEventListener('animationend', () => p.remove());
+      }
+    });
+  }
+
+  // ----- 3 · toggle -----
+  {
+    const t = document.getElementById('toggle');
+    t.addEventListener('click', () =>
+      t.setAttribute('aria-checked', String(t.getAttribute('aria-checked') !== 'true')));
+  }
+
+  // ----- 4 · morphing submit -----
+  {
+    const btn = document.getElementById('morphBtn');
+    btn.addEventListener('click', () => {
+      if (btn.classList.contains('working') || btn.classList.contains('done')) return;
+      btn.classList.add('working');
+      setTimeout(() => { btn.classList.remove('working'); btn.classList.add('done'); }, 1600);
+      setTimeout(() => { btn.classList.remove('done'); }, 4200); // reset for replay
+    });
+  }
+
+  // ----- 5 · error shake -----
+  {
+    const form = document.getElementById('emailForm');
+    const input = document.getElementById('emailInput');
+    const msg = document.getElementById('fieldMsg');
+    form.addEventListener('submit', e => {
+      e.preventDefault();
+      const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+      if (ok) {
+        input.classList.remove('error');
+        msg.textContent = 'Welcome aboard — check your inbox.';
+        msg.classList.add('ok');
+        return;
+      }
+      msg.classList.remove('ok');
+      msg.textContent = 'That address doesn’t look right.';
+      input.classList.add('error');
+      if (!reduceMotion.matches) {
+        form.classList.remove('shake');
+        void form.offsetWidth; // restart the animation
+        form.classList.add('shake');
+      }
+    });
+    input.addEventListener('input', () => { input.classList.remove('error'); msg.textContent = ''; });
+  }
+
+  // ----- 6 · star cascade -----
+  {
+    const stars = [...document.querySelectorAll('#stars .star')];
+    stars.forEach((star, i) => {
+      star.addEventListener('click', () => {
+        stars.forEach((s, j) => {
+          s.classList.remove('pop');
+          s.setAttribute('aria-checked', String(j === i));
+          if (j <= i) {
+            const delay = reduceMotion.matches ? 0 : j * 60;
+            setTimeout(() => {
+              s.classList.add('lit');
+              if (!reduceMotion.matches) { void s.offsetWidth; s.classList.add('pop'); }
+            }, delay);
+          } else {
+            s.classList.remove('lit');
+          }
+        });
+      });
+    });
+  }
+</script>
+</body>
+</html>

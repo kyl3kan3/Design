@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attention Lab · 15 Motion Concepts</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- header ---------- */
+  .top {
+    max-width: 1180px; margin: 0 auto; padding: 84px clamp(20px, 4vw, 48px) 40px;
+  }
+  .top .kicker {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.24em;
+    text-transform: uppercase; color: var(--accent-2);
+    opacity: 0; animation: rise 0.7s var(--ease-out) 0.05s forwards;
+  }
+  .top h1 {
+    margin: 14px 0 0; font-weight: 800; letter-spacing: -0.03em;
+    font-size: clamp(40px, 6.5vw, 84px); line-height: 1.0;
+    opacity: 0; animation: rise 0.8s var(--ease-out) 0.15s forwards;
+  }
+  .top h1 em { font-style: normal; color: var(--accent); }
+  .top p {
+    color: var(--ink-dim); max-width: 62ch; line-height: 1.65; margin: 20px 0 0; font-size: 16px;
+    opacity: 0; animation: rise 0.8s var(--ease-out) 0.3s forwards;
+  }
+  .top p a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+  @keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- grid ---------- */
+  .grid {
+    max-width: 1180px; margin: 0 auto; padding: 10px clamp(20px, 4vw, 48px) 100px;
+    display: grid; gap: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+  .card {
+    position: relative; display: flex; gap: 18px; align-items: center;
+    background: var(--bg-elev); border: 1px solid var(--line); border-radius: 16px;
+    padding: 22px; text-decoration: none; color: var(--ink);
+    opacity: 0; transform: translateY(26px);
+    transition: transform var(--dur-2) var(--ease-out), border-color var(--dur-2) ease, background var(--dur-2) ease;
+  }
+  .card.entered {
+    opacity: 1; transform: none;
+    transition: opacity 0.6s var(--ease-out) var(--d), transform 0.6s var(--ease-out) var(--d),
+                border-color var(--dur-2) ease, background var(--dur-2) ease;
+  }
+  .card:hover { transform: translateY(-4px); border-color: color-mix(in srgb, var(--c) 55%, transparent); background: #12121e; }
+  .card:focus-visible { outline: 2px solid var(--c); outline-offset: 2px; }
+  .card .num {
+    position: absolute; top: 16px; right: 18px;
+    font-family: var(--font-mono); font-size: 11px; color: var(--ink-dim);
+    transition: color var(--dur-1) ease;
+  }
+  .card:hover .num { color: var(--c); }
+  .card h2 { margin: 0 0 3px; font-size: 17.5px; letter-spacing: -0.01em; padding-right: 30px; }
+  .card .fam {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--c); margin-bottom: 7px;
+  }
+  .card p { margin: 0; font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
+  .card .go {
+    margin-left: auto; flex: none; color: var(--ink-dim);
+    transition: transform var(--dur-2) var(--ease-out), color var(--dur-2) ease;
+  }
+  .card:hover .go { transform: translateX(5px); color: var(--c); }
+
+  /* ---------- motifs (little live previews) ---------- */
+  .motif {
+    flex: none; width: 58px; height: 58px; border-radius: 12px;
+    background: color-mix(in srgb, var(--c) 12%, transparent);
+    display: grid; place-items: center; overflow: hidden; position: relative;
+  }
+  .m-glyph { font-weight: 800; font-size: 26px; color: var(--c); display: inline-block; }
+  .card:hover .m-type .m-glyph { animation: jump 0.5s var(--ease-bounce); }
+  @keyframes jump { 40% { transform: translateY(-8px) rotate(-8deg) scale(1.15); } }
+
+  .m-bars { display: flex; gap: 3px; align-items: flex-end; height: 26px; }
+  .m-bars i { width: 5px; border-radius: 2px; background: var(--c); height: 30%; transition: height 0.4s var(--ease-out); }
+  .card:hover .m-bars i:nth-child(1) { height: 65%; } .card:hover .m-bars i:nth-child(2) { height: 100%; transition-delay: 60ms; }
+  .card:hover .m-bars i:nth-child(3) { height: 45%; transition-delay: 120ms; } .card:hover .m-bars i:nth-child(4) { height: 85%; transition-delay: 180ms; }
+
+  .m-dotring { position: relative; width: 30px; height: 30px; }
+  .m-dotring::before { content: ""; position: absolute; inset: 0; border: 1.5px solid var(--c); border-radius: 50%; transition: transform 0.35s var(--ease-out); }
+  .m-dotring::after { content: ""; position: absolute; inset: 11px; background: var(--c); border-radius: 50%; }
+  .card:hover .m-dotring::before { transform: scale(1.35); }
+
+  .m-squares { display: grid; grid-template-columns: 12px 12px; gap: 4px; }
+  .m-squares i { width: 12px; height: 12px; border-radius: 3px; background: var(--c); opacity: 0.5; transition: all 0.35s var(--ease-out); }
+  .card:hover .m-squares i:nth-child(1) { border-radius: 50%; opacity: 1; }
+  .card:hover .m-squares i:nth-child(4) { transform: scale(1.35); opacity: 1; transition-delay: 80ms; }
+
+  .m-dash { display: flex; flex-direction: column; gap: 5px; width: 34px; }
+  .m-dash i { height: 4px; border-radius: 2px; background: var(--c); transition: transform 0.45s var(--ease-out); }
+  .m-dash i:nth-child(2) { opacity: 0.6; } .m-dash i:nth-child(3) { opacity: 0.35; }
+  .card:hover .m-dash i:nth-child(1) { transform: translateX(7px); }
+  .card:hover .m-dash i:nth-child(2) { transform: translateX(-7px); }
+  .card:hover .m-dash i:nth-child(3) { transform: translateX(5px); }
+
+  .m-tilt { width: 26px; height: 34px; border: 1.5px solid var(--c); border-radius: 5px; transition: transform 0.45s var(--ease-out); }
+  .card:hover .m-tilt { transform: perspective(120px) rotateY(-24deg) rotateX(12deg); }
+
+  .m-blob { width: 32px; height: 32px; border-radius: 50%; filter: blur(7px); background: var(--c); animation: m-drift 5s ease-in-out infinite alternate; }
+  @keyframes m-drift { to { transform: translate(6px, -5px) scale(1.25); } }
+
+  .m-morph { width: 16px; height: 16px; background: var(--c); border-radius: 4px; transition: all 0.4s cubic-bezier(0.32, 0.72, 0, 1); }
+  .card:hover .m-morph { width: 32px; height: 32px; border-radius: 10px; }
+
+  .m-ping { position: relative; width: 12px; height: 12px; }
+  .m-ping::before { content: ""; position: absolute; inset: 0; background: var(--c); border-radius: 50%; }
+  .m-ping::after { content: ""; position: absolute; inset: 0; background: var(--c); border-radius: 50%; animation: m-ping 1.8s var(--ease-out) infinite; }
+  @keyframes m-ping { to { transform: scale(3); opacity: 0; } }
+
+  .m-arrow { font-size: 22px; color: var(--c); letter-spacing: -4px; transition: letter-spacing 0.4s var(--ease-out); }
+  .card:hover .m-arrow { letter-spacing: 2px; }
+
+  .m-code { font-family: var(--font-mono); font-size: 15px; color: var(--c); }
+  .card:hover .m-code { animation: m-flicker 0.5s steps(4); }
+  @keyframes m-flicker { 25% { opacity: 0.4; } 50% { opacity: 1; } 75% { opacity: 0.3; } }
+
+  .m-cursor { position: relative; width: 30px; height: 30px; }
+  .m-cursor .r { position: absolute; inset: 0; border: 1.5px solid var(--c); border-radius: 50%; transition: transform 0.4s var(--ease-out); }
+  .m-cursor .d { position: absolute; inset: 12px; background: var(--c); border-radius: 50%; transition: transform 0.4s var(--ease-out) 60ms; }
+  .card:hover .m-cursor .r { transform: translate(4px, -3px); }
+  .card:hover .m-cursor .d { transform: translate(6px, -5px); }
+
+  .m-pin { display: flex; align-items: center; gap: 4px; }
+  .m-pin .lock { width: 10px; height: 22px; border-radius: 3px; background: var(--c); }
+  .m-pin .slide { display: flex; gap: 3px; transition: transform 0.45s var(--ease-out); }
+  .m-pin .slide i { width: 8px; height: 14px; border-radius: 2px; background: var(--c); opacity: 0.45; }
+  .card:hover .m-pin .slide { transform: translateX(-8px); }
+
+  /* ---------- footer ---------- */
+  .foot {
+    max-width: 1180px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 48px) 80px;
+    color: var(--ink-dim); font-size: 13.5px; line-height: 1.7;
+  }
+  .foot code { font-family: var(--font-mono); font-size: 12px; color: var(--accent-2); }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .top .kicker, .top h1, .top p { animation: none; opacity: 1; transform: none; }
+    .card { opacity: 1; transform: none; transition: none; }
+    .card:hover { transform: none; }
+    .m-blob, .m-ping::after { animation: none; }
+    .motif *, .motif::before, .motif::after { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <p class="kicker">Attention Lab · Design research → working code</p>
+  <h1>Fifteen ways to<br>earn a <em>second look</em></h1>
+  <p>Interactive concepts exploring how motion catches — and keeps — attention: kinetic type,
+  scroll-driven narrative, tactile micro-interactions, cursor-led reveals, and the choreography of
+  notification. Every demo is a single self-contained HTML file with zero dependencies, and every
+  one honors <a href="#" onclick="return false">prefers-reduced-motion</a>. Open the “About” panel
+  inside any demo for the mechanism and the exact timing values.</p>
+</header>
+
+<nav class="grid" id="grid" aria-label="Concept demos"></nav>
+
+<footer class="foot">
+  <p>Built from the research in <code>research/attention-motion-design-research.md</code>.
+  The shared rules: entrances decelerate, exits accelerate and run faster; micro-feedback lands in
+  100–200ms; staggers run 30–80ms apart; only transform, opacity and filter animate on the hot path;
+  ambient loops stay slow and yield entirely under reduced motion.</p>
+</footer>
+
+<script>
+  const CONCEPTS = [
+    { n: '01', file: '01-kinetic-typography.html', title: 'Kinetic Typography', fam: 'Type in motion', c: '#7c5cff',
+      desc: 'Masked line reveals, cursor-repelled letters, cycling word masks.', motif: '<span class="m-glyph">A</span>', mc: 'm-type' },
+    { n: '02', file: '02-scroll-story.html', title: 'Scroll-Driven Story', fam: 'Scrollytelling', c: '#29e6a7',
+      desc: 'Progress bar, pinned parallax scene, scroll-filled text, counters.', motif: '<div class="m-bars"><i></i><i></i><i></i><i></i></div>' },
+    { n: '03', file: '03-micro-interactions.html', title: 'Micro-Interactions', fam: 'Tactile feedback', c: '#ff4d6d',
+      desc: 'Magnetic button, particle like, squash-stretch toggle, morphing submit.', motif: '<div class="m-dotring"></div>' },
+    { n: '04', file: '04-bento-grid.html', title: 'Bento Choreography', fam: 'Hover systems', c: '#ffb74d',
+      desc: 'Cursor spotlight borders and per-tile ambient motion that wakes on hover.', motif: '<div class="m-squares"><i></i><i></i><i></i><i></i></div>' },
+    { n: '05', file: '05-marquee.html', title: 'Velocity Marquee', fam: 'Ambient motion', c: '#7c5cff',
+      desc: 'Infinite tickers that speed, skew and reverse with your scroll.', motif: '<div class="m-dash"><i></i><i></i><i></i></div>' },
+    { n: '06', file: '06-cursor-spotlight.html', title: 'Cursor & Spotlight', fam: 'Cursor-led', c: '#29e6a7',
+      desc: 'A cursor with mass and states, plus a flashlight that unmasks hidden content.', motif: '<div class="m-cursor"><span class="r"></span><span class="d"></span></div>' },
+    { n: '07', file: '07-tilt-cards.html', title: 'Dimensional Cards', fam: 'Depth & parallax', c: '#ffb74d',
+      desc: '3D tilt with layered translateZ parallax and a gliding glare.', motif: '<div class="m-tilt"></div>' },
+    { n: '08', file: '08-aurora-hero.html', title: 'Aurora Ambient Hero', fam: 'Living backgrounds', c: '#ff4d6d',
+      desc: 'Drifting gradient field, film grain, conic-ring CTA, headline shimmer.', motif: '<div class="m-blob"></div>' },
+    { n: '09', file: '09-shared-element.html', title: 'Shared-Element Morph', fam: 'Transitions', c: '#7c5cff',
+      desc: 'FLIP: a card physically travels into its detail view and back.', motif: '<div class="m-morph"></div>' },
+    { n: '10', file: '10-attention-cues.html', title: 'Attention Cues', fam: 'Notification design', c: '#29e6a7',
+      desc: 'The salience ladder: dots, pulses, wiggles, toasts, one confetti.', motif: '<div class="m-ping"></div>' },
+    { n: '11', file: '11-horizontal-gallery.html', title: 'Horizontal Gallery', fam: 'Scroll capture', c: '#ffb74d',
+      desc: 'Vertical scroll drives a pinned sideways exhibition with parallax rooms.', motif: '<div class="m-pin"><span class="lock"></span><span class="slide"><i></i><i></i></span></div>' },
+    { n: '12', file: '12-text-decode.html', title: 'Text Decode', fam: 'Type in motion', c: '#ff4d6d',
+      desc: 'Headlines resolve out of cipher noise; rows scramble on hover.', motif: '<span class="m-code">#$&</span>' },
+    { n: '13', file: '13-change-blindness.html', title: 'Change Blindness Lab', fam: 'Perception science', c: '#7c5cff',
+      desc: 'A self-experiment: spot the change under a jump-cut vs. under animation.', motif: '<div class="m-squares"><i></i><i></i><i></i><i></i></div>' },
+    { n: '14', file: '14-easing-lab.html', title: 'Spring & Easing Lab', fam: 'Motion craft', c: '#29e6a7',
+      desc: 'Five curves raced side by side, plus a native linear() spring designer.', motif: '<div class="m-dash"><i></i><i></i><i></i></div>' },
+    { n: '15', file: '15-intro-sequence.html', title: 'Intro Sequence', fam: 'Entrance choreography', c: '#ffb74d',
+      desc: 'Preloader counter → staggered curtain wipe → hero arrival.', motif: '<div class="m-morph"></div>' },
+  ];
+
+  const grid = document.getElementById('grid');
+  CONCEPTS.forEach((k, i) => {
+    const a = document.createElement('a');
+    a.className = 'card';
+    a.href = k.file;
+    a.style.setProperty('--c', k.c);
+    a.style.setProperty('--d', `${i * 0.06}s`);
+    a.innerHTML = `
+      <div class="motif ${k.mc || ''}" aria-hidden="true">${k.motif}</div>
+      <div>
+        <div class="fam">${k.fam}</div>
+        <h2>${k.title}</h2>
+        <p>${k.desc}</p>
+      </div>
+      <span class="num">${k.n}</span>
+      <span class="go" aria-hidden="true">→</span>`;
+    grid.appendChild(a);
+  });
+
+  // staggered entrance
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add('entered'); io.unobserve(e.target); }
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.card').forEach(c => io.observe(c));
+</script>
+</body>
+</html>

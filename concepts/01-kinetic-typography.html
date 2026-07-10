@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>01 — Kinetic Typography · Attention Lab</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --ease-snap: cubic-bezier(0.2, 0, 0, 1);
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+    --dur-3: 600ms;
+    --dur-4: 1000ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 20px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 6px 14px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none;
+    white-space: nowrap;
+  }
+
+  /* ---------- act 1 · masked line reveal ---------- */
+  .stage { min-height: 100vh; }
+  .hero {
+    min-height: 100vh;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 96px clamp(20px, 6vw, 96px) 72px;
+  }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--accent-2);
+    opacity: 0;
+    animation: fade-up var(--dur-3) var(--ease-out) 1.15s forwards;
+  }
+  .headline {
+    margin: 18px 0 0; font-weight: 800;
+    font-size: clamp(44px, 10.5vw, 152px);
+    line-height: 0.96; letter-spacing: -0.035em;
+    text-transform: uppercase;
+  }
+  /* each line sits in an overflow-hidden mask; the inner span rises into view */
+  .line { display: block; overflow: hidden; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+  .line-inner {
+    display: block; transform: translateY(110%);
+    animation: line-rise 0.9s var(--ease-out) forwards;
+  }
+  .line:nth-child(1) .line-inner { animation-delay: 0.15s; }
+  .line:nth-child(2) .line-inner { animation-delay: 0.27s; }
+  .line:nth-child(3) .line-inner { animation-delay: 0.39s; }
+  @keyframes line-rise { to { transform: translateY(0); } }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .line .accent { color: var(--accent); }
+  .line .outline {
+    color: transparent;
+    -webkit-text-stroke: 2px var(--ink);
+  }
+
+  /* letters become cursor-reactive after the reveal */
+  .headline .ch {
+    display: inline-block;
+    transition: transform 0.45s var(--ease-out), color 0.45s var(--ease-out);
+    will-change: transform;
+  }
+
+  .standfirst {
+    max-width: 52ch; margin-top: 28px;
+    color: var(--ink-dim); font-size: clamp(15px, 1.4vw, 18px); line-height: 1.6;
+    opacity: 0;
+    animation: fade-up var(--dur-3) var(--ease-out) 1.3s forwards;
+  }
+  .standfirst em { color: var(--ink); font-style: normal; font-weight: 600; }
+
+  /* ---------- act 2 · word rotator ---------- */
+  .rotator-section {
+    min-height: 90vh;
+    display: flex; align-items: center;
+    padding: 72px clamp(20px, 6vw, 96px);
+    border-top: 1px solid var(--line);
+  }
+  .rotator-copy {
+    font-weight: 800; text-transform: uppercase; letter-spacing: -0.03em;
+    font-size: clamp(34px, 6.5vw, 92px); line-height: 1.06;
+  }
+  .rotator-copy .static { color: var(--ink-dim); }
+  .word-mask {
+    display: inline-grid; overflow: hidden; vertical-align: bottom;
+    padding-bottom: 0.08em; margin-bottom: -0.08em;
+  }
+  .word-mask > span {
+    grid-area: 1 / 1;
+    color: var(--gold);
+    transform: translateY(110%);
+    transition: transform 0.7s var(--ease-out);
+  }
+  .word-mask > span.is-in  { transform: translateY(0); }
+  .word-mask > span.is-out { transform: translateY(-115%); transition-duration: 0.5s; }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+    .line-inner { transform: none; animation: none; }
+    .eyebrow, .standfirst { opacity: 1; animation: none; }
+    .headline .ch { transition: none; }
+    .word-mask > span { transform: translateY(110%); }
+    .word-mask > span.is-in { transform: none; }
+  }
+</style>
+</head>
+<body>
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">01</span><span class="chrome-name">Kinetic Typography</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>Kinetic typography hero</h2>
+  <p class="about-what">Oversized display type that enters with a staggered mask reveal, reacts to the cursor, and cycles key words through a clip mask.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> type at this scale is itself the image, and motion in text is doubly salient — the eye is drawn to movement pre-attentively, and to words automatically. Staggering the lines creates a reading rhythm the eye follows like a cue.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> lines rise 900ms on cubic-bezier(.16,1,.3,1) with a 120ms stagger; supporting copy waits until the headline lands (~1.15s). Letters ease back over 450ms after cursor displacement. Word rotator: 700ms in / 500ms out — exits faster than entrances.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> all text renders in place immediately, cursor repulsion is disabled, and the word rotator swaps instantly instead of sliding.</p>
+</aside>
+
+<main class="stage">
+  <section class="hero">
+    <p class="eyebrow">Ossa Type Foundry · Specimen 07</p>
+    <h1 class="headline" id="headline">
+      <span class="line"><span class="line-inner" data-split>Letters</span></span>
+      <span class="line"><span class="line-inner"><span data-split>that</span> <span class="accent" data-split>refuse</span></span></span>
+      <span class="line"><span class="line-inner"><span class="outline" data-split>to sit</span> <span data-split>still</span></span></span>
+    </h1>
+    <p class="standfirst">
+      Ossa Grotesk is drawn for motion first: <em>counterweights tuned for interpolation</em>,
+      terminals that read clean mid-transition, and spacing that holds at any velocity.
+      A typeface for screens that move.
+    </p>
+  </section>
+
+  <section class="rotator-section" aria-label="Word rotator">
+    <p class="rotator-copy">
+      <span class="static">Set it to</span><br>
+      <span class="word-mask" id="wordMask" aria-live="off">
+        <span class="is-in">breathe.</span><span>pulse.</span><span>slide.</span><span>snap.</span><span>drift.</span>
+      </span>
+    </p>
+  </section>
+</main>
+
+<footer class="hint">Move your cursor over the headline</footer>
+
+<script>
+  // ----- about panel -----
+  const infoBtn = document.querySelector('.chrome-info');
+  const aboutPanel = document.getElementById('about');
+  infoBtn.addEventListener('click', () => {
+    const open = aboutPanel.hidden;
+    aboutPanel.hidden = !open;
+    infoBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ----- split headline text into per-letter spans -----
+  document.querySelectorAll('[data-split]').forEach(node => {
+    const text = node.textContent;
+    node.textContent = '';
+    for (const ch of text) {
+      if (ch === ' ') { node.appendChild(document.createTextNode(' ')); continue; }
+      const s = document.createElement('span');
+      s.className = 'ch';
+      s.textContent = ch;
+      node.appendChild(s);
+    }
+  });
+
+  // ----- cursor proximity: letters lean away, spring back -----
+  if (!reduceMotion.matches) {
+    const headline = document.getElementById('headline');
+    const letters = [...headline.querySelectorAll('.ch')];
+    const RADIUS = 140;   // px influence radius around the cursor
+    const PUSH = 26;      // max displacement in px
+    let raf = null, mx = -9999, my = -9999;
+
+    function apply() {
+      raf = null;
+      for (const el of letters) {
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        const dx = cx - mx, dy = cy - my;
+        const d = Math.hypot(dx, dy);
+        if (d < RADIUS) {
+          const f = (1 - d / RADIUS);
+          const push = f * f * PUSH; // quadratic falloff feels springier
+          el.style.transform =
+            `translate(${(dx / d) * push}px, ${(dy / d) * push}px) rotate(${(dx / d) * f * 6}deg)`;
+        } else if (el.style.transform) {
+          el.style.transform = '';
+        }
+      }
+    }
+    window.addEventListener('pointermove', e => {
+      mx = e.clientX; my = e.clientY;
+      if (!raf) raf = requestAnimationFrame(apply);
+    }, { passive: true });
+    window.addEventListener('pointerleave', () => {
+      mx = my = -9999;
+      if (!raf) raf = requestAnimationFrame(apply);
+    });
+  }
+
+  // ----- word rotator: masked slide up-and-out / up-and-in -----
+  const mask = document.getElementById('wordMask');
+  const words = [...mask.children];
+  let idx = 0;
+  setInterval(() => {
+    const prev = words[idx];
+    idx = (idx + 1) % words.length;
+    const next = words[idx];
+    if (reduceMotion.matches) {
+      words.forEach(w => w.classList.remove('is-in', 'is-out'));
+      next.classList.add('is-in');
+      return;
+    }
+    prev.classList.remove('is-in');
+    prev.classList.add('is-out');
+    next.classList.remove('is-out');
+    // restart from below the mask before sliding in
+    next.style.transition = 'none';
+    next.style.transform = 'translateY(110%)';
+    void next.offsetHeight; // flush so the reset takes effect
+    next.style.transition = '';
+    next.style.transform = '';
+    next.classList.add('is-in');
+    setTimeout(() => prev.classList.remove('is-out'), 550);
+  }, 2600);
+</script>
+</body>
+</html>

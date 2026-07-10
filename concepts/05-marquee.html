@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>05 — Velocity Marquee · Attention Lab</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  html { overflow-x: clip; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+  }
+  .bands { overflow: hidden; }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px; padding: 14px 20px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 6px 14px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+  }
+
+  /* ---------- intro ---------- */
+  .intro {
+    min-height: 72vh; display: flex; flex-direction: column; justify-content: center; align-items: center;
+    text-align: center; padding: 110px 20px 40px;
+  }
+  .intro .kicker {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.24em;
+    text-transform: uppercase; color: var(--gold);
+  }
+  .intro h1 {
+    margin: 14px 0 0; font-weight: 800; text-transform: uppercase;
+    font-size: clamp(42px, 9vw, 128px); line-height: 0.95; letter-spacing: -0.03em;
+  }
+  .intro h1 .slash { color: var(--accent); }
+  .intro p { color: var(--ink-dim); max-width: 44ch; line-height: 1.65; margin-top: 22px; }
+
+  /* ---------- marquee bands ---------- */
+  .bands { padding: 8vh 0 14vh; display: flex; flex-direction: column; gap: 26px; }
+  .band { position: relative; overflow: hidden; white-space: nowrap; padding: 10px 0; }
+  .band.tilt-a { transform: rotate(-2deg) scale(1.03); }
+  .band.tilt-b { transform: rotate(1.4deg) scale(1.03); }
+  .band .track { display: inline-flex; align-items: baseline; will-change: transform; }
+  .band .chunk { display: inline-flex; align-items: baseline; gap: 0.6em; padding-right: 0.6em; }
+  .band .word {
+    font-weight: 800; text-transform: uppercase; letter-spacing: -0.02em;
+    font-size: clamp(38px, 6.5vw, 84px); line-height: 1.1;
+  }
+  .band .word.ghost { color: transparent; -webkit-text-stroke: 1.5px rgba(244,243,247,0.42); }
+  .band .sep { color: var(--accent); font-size: clamp(22px, 3.5vw, 40px); }
+  .band-a .word:not(.ghost) { color: var(--ink); }
+  .band-b { background: var(--accent); }
+  .band-b .word:not(.ghost) { color: #0a0a10; }
+  .band-b .word.ghost { -webkit-text-stroke-color: rgba(10,10,16,0.5); }
+  .band-b .sep { color: #0a0a10; }
+  .band-c .word:not(.ghost) { color: var(--accent-2); }
+
+  /* ---------- outro ---------- */
+  .outro { text-align: center; padding: 4vh 20px 20vh; }
+  .outro .cta {
+    display: inline-block; background: var(--hot); color: #fff; text-decoration: none;
+    font: 700 16px/1 var(--font-sans); letter-spacing: 0.02em;
+    padding: 18px 40px; border-radius: 999px;
+    transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) ease;
+  }
+  .outro .cta:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 14px 44px rgba(255, 77, 109, 0.45); }
+  .outro .cta:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  .outro .fine { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); margin-top: 18px; }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .band { overflow-x: auto; }
+    .band.tilt-a, .band.tilt-b { transform: none; }
+    .outro .cta { transition: none; }
+    .outro .cta:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">05</span><span class="chrome-name">Velocity Marquee</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>Velocity-reactive infinite marquee</h2>
+  <p class="about-what">Three infinite ticker bands drifting at different speeds and directions. Scrolling injects your velocity: bands accelerate, skew like they're under wind load, and follow your scroll direction, then relax back to their drift.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> continuous horizontal drift registers in peripheral vision without demanding focus — until it responds to <em>you</em>. Coupling the bands to scroll velocity turns passive ambience into a physics toy; the skew reads as momentum, which the brain finds irresistibly causal.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> JS rAF loop advances each track by base drift (0.5–0.9 px/frame) + |scroll velocity| × 0.35, wrapped seamlessly at half-width; skewX = velocity × 0.05 clamped to ±12°, decayed with lerp 0.08/frame. Alternating filled and 1.5px-stroked outline words add depth on one type size.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> bands stop drifting entirely and become ordinary horizontally scrollable rows; the tilt is removed and no skew is applied.</p>
+</aside>
+
+<main class="stage">
+  <section class="intro">
+    <p class="kicker">June 12–14 · Oslo</p>
+    <h1>Motion<span class="slash">//</span>26</h1>
+    <p>Three days on kinetic type, spatial interfaces, and the craft of making pixels feel like objects. Scroll hard — the tickers are listening.</p>
+  </section>
+
+  <section class="bands" aria-label="Festival tickers">
+    <div class="band band-a tilt-a" data-speed="0.7" data-dir="1">
+      <div class="track">
+        <span class="chunk"><span class="word">Motion//26</span><span class="sep">✦</span><span class="word ghost">Oslo</span><span class="sep">✦</span><span class="word">June 12–14</span><span class="sep">✦</span></span>
+      </div>
+    </div>
+    <div class="band band-b" data-speed="0.5" data-dir="-1">
+      <div class="track">
+        <span class="chunk"><span class="word">Kinetic type</span><span class="sep">✦</span><span class="word ghost">Spatial UI</span><span class="sep">✦</span><span class="word">Haptic web</span><span class="sep">✦</span><span class="word ghost">Springs</span><span class="sep">✦</span></span>
+      </div>
+    </div>
+    <div class="band band-c tilt-b" data-speed="0.9" data-dir="1">
+      <div class="track">
+        <span class="chunk"><span class="word">48 speakers</span><span class="sep">✦</span><span class="word ghost">12 workshops</span><span class="sep">✦</span><span class="word">1 fjord</span><span class="sep">✦</span></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="outro">
+    <a class="cta" href="#" onclick="return false">Get tickets — 890 NOK</a>
+    <p class="fine">Students half price · Livestream free</p>
+  </section>
+</main>
+
+<footer class="hint">Scroll fast, then let go</footer>
+
+<script>
+  // ----- about panel -----
+  const infoBtn = document.querySelector('.chrome-info');
+  const aboutPanel = document.getElementById('about');
+  infoBtn.addEventListener('click', () => {
+    const open = aboutPanel.hidden;
+    aboutPanel.hidden = !open;
+    infoBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ----- velocity marquee engine -----
+  if (!reduceMotion.matches) {
+    const bands = [...document.querySelectorAll('.band')].map(band => {
+      const track = band.querySelector('.track');
+      const chunk = track.querySelector('.chunk');
+      // duplicate content until the track is at least 2× the viewport, +1 for seamless wrap
+      const needed = Math.ceil((innerWidth * 2) / chunk.offsetWidth) + 1;
+      for (let i = 0; i < needed; i++) track.appendChild(chunk.cloneNode(true));
+      return {
+        el: track,
+        band,
+        pos: 0,
+        unit: chunk.offsetWidth,        // wrap length = one content unit
+        speed: +band.dataset.speed,
+        dir: +band.dataset.dir,
+      };
+    });
+
+    let lastY = scrollY, vel = 0, skew = 0;
+
+    (function frame() {
+      // scroll velocity, decayed toward 0 between scroll events
+      const dy = scrollY - lastY;
+      lastY = scrollY;
+      vel += (dy - vel) * 0.3;
+      vel *= 0.92;
+
+      const boost = Math.min(Math.abs(vel) * 0.35, 38);
+      const dirBoost = vel === 0 ? 1 : Math.sign(vel) || 1;
+      const targetSkew = Math.max(-12, Math.min(12, vel * 0.05));
+      skew += (targetSkew - skew) * 0.08;
+
+      for (const b of bands) {
+        b.pos += (b.speed + boost) * b.dir * dirBoost;
+        // seamless wrap in both directions
+        b.pos = ((b.pos % b.unit) + b.unit) % b.unit;
+        b.el.style.transform = `translateX(${-b.pos}px) skewX(${skew}deg)`;
+      }
+      requestAnimationFrame(frame);
+    })();
+  }
+</script>
+</body>
+</html>

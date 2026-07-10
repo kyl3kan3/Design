@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>14 — Spring & Easing Lab · Attention Lab</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px; padding: 14px 20px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 6px 14px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+  }
+
+  /* ---------- layout ---------- */
+  .stage { max-width: 1000px; margin: 0 auto; padding: 110px clamp(18px, 4vw, 44px) 90px; }
+  .stage-head h1 { font-size: clamp(30px, 4.4vw, 52px); letter-spacing: -0.025em; margin: 0 0 10px; }
+  .stage-head h1 em { font-style: normal; color: var(--accent-2); }
+  .stage-head p { color: var(--ink-dim); max-width: 60ch; line-height: 1.65; margin: 0 0 34px; font-size: 15.5px; }
+  h2.sec {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--ink-dim); margin: 44px 0 16px;
+  }
+
+  /* ---------- race ---------- */
+  .race { border: 1px solid var(--line); border-radius: 16px; background: var(--bg-elev); padding: 20px; }
+  .lane {
+    display: grid; grid-template-columns: 190px 1fr 74px; gap: 16px; align-items: center;
+    padding: 12px 6px; border-bottom: 1px solid var(--line);
+  }
+  .lane:last-of-type { border-bottom: none; }
+  @media (max-width: 640px) { .lane { grid-template-columns: 110px 1fr; } .lane svg.curve { display: none; } }
+  .lane .name { font-family: var(--font-mono); font-size: 12px; color: var(--ink-dim); line-height: 1.5; }
+  .lane .name b { color: var(--ink); display: block; font-size: 12.5px; }
+  .track { position: relative; height: 34px; }
+  .track::before {
+    content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px;
+    background: var(--line);
+  }
+  .runner {
+    position: absolute; top: 50%; left: 0; width: 26px; height: 26px; margin-top: -13px;
+    border-radius: 8px; background: var(--c);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--c) 45%, transparent);
+  }
+  .race.play .runner { animation: run var(--race-dur, 1200ms) var(--ease) forwards; }
+  @keyframes run { to { transform: translateX(calc(var(--track-w) - 26px)); } }
+  svg.curve { width: 74px; height: 44px; overflow: visible; }
+  svg.curve path { fill: none; stroke: var(--c); stroke-width: 1.6; }
+  svg.curve line { stroke: var(--line); stroke-width: 1; }
+
+  .race-controls { display: flex; gap: 12px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
+  .btn {
+    background: var(--accent); color: #fff; border: none; border-radius: 999px;
+    font: 600 14px var(--font-sans); padding: 12px 26px; cursor: pointer;
+    transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-2) ease;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 26px rgba(124, 92, 255, 0.4); }
+  .btn:active { transform: scale(0.97); }
+  .btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  .btn.ghost { background: none; border: 1px solid var(--line); color: var(--ink); }
+  .btn.ghost:hover { box-shadow: none; border-color: var(--ink-dim); }
+  .race-controls label { font-family: var(--font-mono); font-size: 12px; color: var(--ink-dim); display: flex; gap: 10px; align-items: center; }
+
+  /* ---------- spring designer ---------- */
+  .designer {
+    border: 1px solid var(--line); border-radius: 16px; background: var(--bg-elev);
+    padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 28px;
+  }
+  @media (max-width: 760px) { .designer { grid-template-columns: 1fr; } }
+  .d-controls label {
+    display: block; font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    color: var(--ink-dim); margin: 18px 0 8px;
+  }
+  .d-controls label:first-child { margin-top: 0; }
+  .d-controls output { color: var(--accent-2); }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .spring-stage {
+    position: relative; height: 120px; border: 1px dashed var(--line); border-radius: 12px;
+    margin-top: 22px; overflow: hidden;
+  }
+  .spring-box {
+    position: absolute; top: 50%; left: 18px; width: 44px; height: 44px; margin-top: -22px;
+    border-radius: 12px; background: linear-gradient(135deg, var(--accent), var(--hot));
+    box-shadow: 0 6px 22px rgba(124, 92, 255, 0.4);
+  }
+  .spring-box.go { transition: transform var(--s-dur, 900ms) var(--s-ease, ease); }
+  .d-out h3 { margin: 0 0 10px; font-size: 15px; }
+  .curve-big { width: 100%; height: 170px; background: rgba(8,8,13,0.6); border-radius: 12px; }
+  .curve-big path { fill: none; stroke: var(--accent-2); stroke-width: 2; }
+  .curve-big line { stroke: var(--line); stroke-width: 1; }
+  .css-out {
+    margin-top: 14px; position: relative;
+    background: #0b0b13; border: 1px solid var(--line); border-radius: 10px;
+    padding: 14px 14px 14px 16px; font-family: var(--font-mono); font-size: 11px;
+    color: var(--accent-2); line-height: 1.6; word-break: break-all; max-height: 130px; overflow: auto;
+  }
+  .copy-btn {
+    position: absolute; top: 8px; right: 8px;
+    background: #1b1b2c; border: 1px solid var(--line); color: var(--ink-dim);
+    font: 600 11px var(--font-sans); border-radius: 7px; padding: 6px 12px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .copy-btn:hover { color: var(--ink); border-color: var(--ink-dim); }
+  .copy-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .race.play .runner { animation-duration: 0.01ms; }
+    .spring-box.go { transition-duration: 0.01ms; }
+    .btn, .btn:hover, .btn:active { transform: none; }
+  }
+</style>
+</head>
+<body>
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">14</span><span class="chrome-name">Spring &amp; Easing Lab</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>Easing race + native spring designer</h2>
+  <p class="about-what">Five identical moves, five different easing curves, raced side by side — then a designer that samples a real damped-spring simulation into CSS's native <code>linear()</code> function, with copyable output.</p>
+  <p class="about-why"><strong>Why it matters:</strong> easing is where users perceive quality without knowing why. Deceleration into place reads as physical; a slight overshoot (≤15%) reads as alive; pure linear motion reads as robotic. Since <code>linear()</code> shipped in all engines, real spring physics needs zero JavaScript at runtime.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> the race runs one duration (adjustable 600–2000ms) so only the curve differs; curves are plotted from the same functions that drive the motion. The spring designer solves the closed-form underdamped oscillator x(t)=1−e^(−ζω₀t)(cos ω_d t + (ζω₀/ω_d) sin ω_d t), samples 48 points, and emits <code>linear()</code>. Damping ratio 0.7–1.0 feels premium; below 0.5 becomes cartoon.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> runs complete instantly (curve plots — the educational content — carry the comparison), and nothing animates without an explicit button press either way.</p>
+</aside>
+
+<main class="stage">
+  <div class="stage-head">
+    <h1>Same distance. Same time.<br><em>Different feel.</em></h1>
+    <p>Everything in motion design that reads as “premium” lives in the easing curve. Race the five below, then design your own spring and take the CSS with you.</p>
+  </div>
+
+  <h2 class="sec">The race — one duration, five personalities</h2>
+  <div class="race" id="race">
+    <div class="lane" style="--c:#8f8ea0" data-ease="linear" data-fn="linear">
+      <div class="name"><b>Linear</b>linear</div>
+      <div class="track"><div class="runner"></div></div>
+      <svg class="curve" aria-hidden="true"></svg>
+    </div>
+    <div class="lane" style="--c:#29e6a7" data-ease="cubic-bezier(0.16, 1, 0.3, 1)" data-fn="expo">
+      <div class="name"><b>Expo out</b>cubic-bezier(.16,1,.3,1)</div>
+      <div class="track"><div class="runner"></div></div>
+      <svg class="curve" aria-hidden="true"></svg>
+    </div>
+    <div class="lane" style="--c:#7c5cff" data-ease="cubic-bezier(0.05, 0.7, 0.1, 1)" data-fn="emph">
+      <div class="name"><b>Emphasized</b>M3 decelerate</div>
+      <div class="track"><div class="runner"></div></div>
+      <svg class="curve" aria-hidden="true"></svg>
+    </div>
+    <div class="lane" style="--c:#ffb74d" data-ease="cubic-bezier(0.34, 1.56, 0.64, 1)" data-fn="back">
+      <div class="name"><b>Overshoot</b>cubic-bezier(.34,1.56,.64,1)</div>
+      <div class="track"><div class="runner"></div></div>
+      <svg class="curve" aria-hidden="true"></svg>
+    </div>
+    <div class="lane" style="--c:#ff4d6d" data-ease="" data-fn="spring" id="springLane">
+      <div class="name"><b>Spring ζ=0.55</b>native linear()</div>
+      <div class="track"><div class="runner"></div></div>
+      <svg class="curve" aria-hidden="true"></svg>
+    </div>
+    <div class="race-controls">
+      <button class="btn" id="playBtn">Race</button>
+      <button class="btn ghost" id="resetBtn">Reset</button>
+      <label>Duration <input type="range" id="durSlider" min="600" max="2000" step="100" value="1200" style="width:140px"> <output id="durOut">1200ms</output></label>
+    </div>
+  </div>
+
+  <h2 class="sec">Spring designer — physics in, CSS out</h2>
+  <div class="designer">
+    <div class="d-controls">
+      <label>Damping ratio ζ — <output id="zetaOut">0.60</output> <span style="opacity:.6">(1.0 = no bounce)</span></label>
+      <input type="range" id="zeta" min="0.30" max="1.00" step="0.05" value="0.60">
+      <label>Response ω₀ — <output id="omegaOut">14 rad/s</output></label>
+      <input type="range" id="omega" min="6" max="26" step="1" value="14">
+      <label>Duration — <output id="sdurOut">900ms</output></label>
+      <input type="range" id="sdur" min="400" max="1600" step="50" value="900">
+      <div class="spring-stage" id="springStage">
+        <div class="spring-box" id="springBox"></div>
+      </div>
+      <div class="race-controls" style="margin-top:14px">
+        <button class="btn" id="springPlay">Toggle position</button>
+      </div>
+    </div>
+    <div class="d-out">
+      <h3>Your curve</h3>
+      <svg class="curve-big" id="bigCurve" viewBox="0 0 400 170" preserveAspectRatio="none" aria-label="Spring curve plot"></svg>
+      <div class="css-out" id="cssOut"><button class="copy-btn" id="copyBtn">Copy</button><span id="cssText"></span></div>
+    </div>
+  </div>
+</main>
+
+<footer class="hint">Press Race — watch the finish, not the start</footer>
+
+<script>
+  // ----- about panel -----
+  const infoBtn = document.querySelector('.chrome-info');
+  const aboutPanel = document.getElementById('about');
+  infoBtn.addEventListener('click', () => {
+    const open = aboutPanel.hidden;
+    aboutPanel.hidden = !open;
+    infoBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  // ----- curve math -----
+  const FNS = {
+    linear: t => t,
+    expo:   t => 1 - Math.pow(1 - t, 4.2),                    // close visual match to (.16,1,.3,1)
+    emph:   t => 1 - Math.pow(1 - t, 3.1),                    // approximation for the plot
+    back:   t => { const c1 = 1.70158 * 1.28, c3 = c1 + 1;    // matches (.34,1.56,.64,1) family
+                   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); },
+  };
+  function springFn(zeta, omega0, durSec) {
+    if (zeta >= 0.999) {
+      return t => { const s = t * durSec, w = omega0; return 1 - Math.exp(-w * s) * (1 + w * s); };
+    }
+    const wd = omega0 * Math.sqrt(1 - zeta * zeta);
+    return t => {
+      const s = t * durSec;
+      return 1 - Math.exp(-zeta * omega0 * s) * (Math.cos(wd * s) + (zeta * omega0 / wd) * Math.sin(wd * s));
+    };
+  }
+  function sampleLinear(fn, n = 48) {
+    const pts = [];
+    for (let i = 0; i <= n; i++) pts.push(+fn(i / n).toFixed(4));
+    pts[n] = 1;
+    return `linear(${pts.join(', ')})`;
+  }
+  function plot(svg, fn, w, h, pad = 6) {
+    let d = '';
+    for (let i = 0; i <= 60; i++) {
+      const t = i / 60, v = fn(t);
+      const x = pad + t * (w - 2 * pad);
+      const y = h - pad - v * (h - 2 * pad) * 0.78 - (h * 0.05); // leave headroom for overshoot
+      d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+    }
+    svg.innerHTML = `<line x1="${pad}" y1="${h - pad}" x2="${w - pad}" y2="${h - pad}"/>` +
+                    `<line x1="${pad}" y1="${h - pad - (h - 2 * pad) * 0.78 - h * 0.05}" x2="${w - pad}" y2="${h - pad - (h - 2 * pad) * 0.78 - h * 0.05}"/>` +
+                    `<path d="${d}"/>`;
+  }
+
+  // ----- the race -----
+  const race = document.getElementById('race');
+  const lanes = [...race.querySelectorAll('.lane')];
+  const durSlider = document.getElementById('durSlider');
+  const durOut = document.getElementById('durOut');
+  const raceSpringEase = sampleLinear(springFn(0.55, 14, 1.2), 60);
+  document.getElementById('springLane').dataset.ease = raceSpringEase;
+
+  lanes.forEach(l => {
+    const svg = l.querySelector('svg.curve');
+    const fn = l.dataset.fn === 'spring' ? springFn(0.55, 14, 1.2) : FNS[l.dataset.fn];
+    svg.setAttribute('viewBox', '0 0 74 44');
+    plot(svg, fn, 74, 44, 3);
+    l.querySelector('.runner').style.setProperty('--ease', l.dataset.ease);
+  });
+
+  function setTrackWidths() {
+    lanes.forEach(l => {
+      const track = l.querySelector('.track');
+      l.querySelector('.runner').style.setProperty('--track-w', track.offsetWidth + 'px');
+    });
+  }
+  setTrackWidths();
+  addEventListener('resize', setTrackWidths);
+
+  durSlider.addEventListener('input', () => {
+    durOut.textContent = durSlider.value + 'ms';
+    race.style.setProperty('--race-dur', durSlider.value + 'ms');
+  });
+  document.getElementById('playBtn').addEventListener('click', () => {
+    race.classList.remove('play');
+    void race.offsetWidth;
+    setTrackWidths();
+    race.classList.add('play');
+  });
+  document.getElementById('resetBtn').addEventListener('click', () => race.classList.remove('play'));
+
+  // ----- spring designer -----
+  const zeta = document.getElementById('zeta');
+  const omega = document.getElementById('omega');
+  const sdur = document.getElementById('sdur');
+  const bigCurve = document.getElementById('bigCurve');
+  const cssText = document.getElementById('cssText');
+  const springBox = document.getElementById('springBox');
+  const springStage = document.getElementById('springStage');
+  let springOut = '';
+  let atEnd = false;
+
+  function updateSpring() {
+    const z = +zeta.value, w = +omega.value, d = +sdur.value / 1000;
+    document.getElementById('zetaOut').textContent = z.toFixed(2);
+    document.getElementById('omegaOut').textContent = w + ' rad/s';
+    document.getElementById('sdurOut').textContent = sdur.value + 'ms';
+    const fn = springFn(z, w, d);
+    plot(bigCurve, fn, 400, 170, 8);
+    springOut = sampleLinear(fn);
+    cssText.textContent = `transition: transform ${sdur.value}ms ${springOut};`;
+    springBox.style.setProperty('--s-dur', sdur.value + 'ms');
+    springBox.style.setProperty('--s-ease', springOut);
+  }
+  [zeta, omega, sdur].forEach(el => el.addEventListener('input', updateSpring));
+  updateSpring();
+
+  document.getElementById('springPlay').addEventListener('click', () => {
+    springBox.classList.add('go');
+    atEnd = !atEnd;
+    const travel = springStage.offsetWidth - 44 - 36;
+    springBox.style.transform = atEnd ? `translateX(${travel}px)` : 'translateX(0)';
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(cssText.textContent);
+      document.getElementById('copyBtn').textContent = 'Copied ✓';
+    } catch {
+      // clipboard may be unavailable on file:// — select the text instead
+      const r = document.createRange();
+      r.selectNodeContents(cssText);
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+      document.getElementById('copyBtn').textContent = 'Select + ⌘C';
+    }
+    setTimeout(() => document.getElementById('copyBtn').textContent = 'Copy', 1800);
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>06 — Cursor & Spotlight · Attention Lab</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+  /* hide the native cursor only when we can replace it (fine pointer, no reduced motion) */
+  @media (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    body.custom-cursor, body.custom-cursor a, body.custom-cursor button { cursor: none; }
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px; padding: 14px 20px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 6px 14px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+  }
+
+  /* ---------- custom cursor ---------- */
+  .cursor-dot, .cursor-ring {
+    position: fixed; top: 0; left: 0; z-index: 100; pointer-events: none;
+    border-radius: 50%;
+    display: none;
+  }
+  body.custom-cursor .cursor-dot, body.custom-cursor .cursor-ring { display: block; }
+  .cursor-dot {
+    width: 8px; height: 8px; margin: -4px;
+    background: var(--accent-2);
+  }
+  .cursor-ring {
+    width: 38px; height: 38px; margin: -19px;
+    border: 1.5px solid rgba(244, 243, 247, 0.5);
+    display: none;
+    transition: width 0.3s var(--ease-out), height 0.3s var(--ease-out),
+                margin 0.3s var(--ease-out), background 0.3s ease, border-color 0.3s ease;
+  }
+  .cursor-ring .cursor-label {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    font: 600 11px var(--font-mono); letter-spacing: 0.1em; color: #0a0a10;
+    opacity: 0; transition: opacity 0.2s ease;
+  }
+  /* cursor states */
+  body.cur-link .cursor-ring {
+    width: 56px; height: 56px; margin: -28px;
+    border-color: var(--accent); background: rgba(124, 92, 255, 0.12);
+  }
+  body.cur-view .cursor-ring {
+    width: 72px; height: 72px; margin: -36px;
+    background: var(--accent-2); border-color: var(--accent-2);
+  }
+  body.cur-view .cursor-ring .cursor-label { opacity: 1; }
+  body.cur-view .cursor-dot { opacity: 0; }
+
+  /* ---------- hero ---------- */
+  .hero {
+    min-height: 88vh; display: flex; flex-direction: column; justify-content: center;
+    padding: 110px clamp(20px, 7vw, 110px) 60px;
+  }
+  .hero .kicker { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--gold); }
+  .hero h1 {
+    margin: 16px 0 0; font-weight: 800; letter-spacing: -0.03em;
+    font-size: clamp(40px, 7.6vw, 106px); line-height: 1.0;
+  }
+  .hero p { color: var(--ink-dim); max-width: 46ch; line-height: 1.65; margin-top: 22px; font-size: 17px; }
+  .hero a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 4px; }
+
+  /* ---------- spotlight reveal ---------- */
+  .reveal-zone { position: relative; min-height: 92vh; border-top: 1px solid var(--line); overflow: hidden; }
+  .layer {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 60px clamp(20px, 7vw, 110px);
+  }
+  .layer h2 { font-size: clamp(34px, 5.6vw, 76px); font-weight: 800; letter-spacing: -0.028em; line-height: 1.04; margin: 0; }
+  .layer p { max-width: 46ch; line-height: 1.7; margin-top: 20px; font-size: 16.5px; }
+  .layer-dull { color: rgba(244, 243, 247, 0.22); }
+  .layer-dull p { color: rgba(244, 243, 247, 0.16); }
+  .layer-lit {
+    background:
+      radial-gradient(900px 500px at 80% 20%, rgba(124, 92, 255, 0.22), transparent 60%),
+      radial-gradient(700px 500px at 15% 85%, rgba(41, 230, 167, 0.16), transparent 60%),
+      #0d0d16;
+    color: var(--ink);
+    -webkit-mask-image: radial-gradient(circle var(--r, 0px) at var(--sx, 50%) var(--sy, 50%), #000 98%, transparent 100%);
+            mask-image: radial-gradient(circle var(--r, 0px) at var(--sx, 50%) var(--sy, 50%), #000 98%, transparent 100%);
+  }
+  .layer-lit h2 em { font-style: normal; color: var(--accent-2); }
+  .layer-lit p { color: var(--ink-dim); }
+  body.reveal-all .layer-lit { -webkit-mask-image: none; mask-image: none; }
+
+  /* ---------- gallery strip ---------- */
+  .work { padding: 14vh clamp(20px, 7vw, 110px) 18vh; border-top: 1px solid var(--line); }
+  .work h2 { font-size: 15px; font-family: var(--font-mono); letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim); margin: 0 0 28px; }
+  .work-list { display: grid; gap: 2px; }
+  .work-item {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 20px;
+    padding: 26px 10px; border-top: 1px solid var(--line);
+    text-decoration: none; color: var(--ink);
+    transition: background var(--dur-2) ease, padding-left var(--dur-2) var(--ease-out);
+  }
+  .work-item:last-child { border-bottom: 1px solid var(--line); }
+  .work-item:hover { background: rgba(124, 92, 255, 0.06); padding-left: 26px; }
+  .work-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .work-item .t { font-size: clamp(20px, 2.6vw, 32px); font-weight: 700; letter-spacing: -0.01em; }
+  .work-item .y { font-family: var(--font-mono); font-size: 13px; color: var(--ink-dim); }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .layer-lit { -webkit-mask-image: none; mask-image: none; }
+    .layer-dull { display: none; }
+    .work-item { transition: none; }
+  }
+</style>
+</head>
+<body>
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">06</span><span class="chrome-name">Cursor &amp; Spotlight</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>Cursor as character + spotlight reveal</h2>
+  <p class="about-what">The cursor becomes a designed object: a dot with a spring-lagged ring that morphs by context (grows on links, becomes a “VIEW” pill over work items) — and a section where it turns into a literal spotlight, unmasking a hidden vivid layer.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> the cursor is the one pixel users already watch. Giving it mass and personality creates constant, self-directed motion; the spotlight adds a curiosity gap — you can see there is more page than you're being shown, so you sweep to uncover it.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> dot tracks 1:1; ring follows with lerp 0.16/frame for a ~90ms lag that implies weight; state morphs run 300ms on cubic-bezier(.16,1,.3,1). Spotlight is a CSS <code>mask-image</code> radial circle whose radius springs 0→220px on entry and position lerps at 0.2/frame.</p>
+  <p class="about-rm"><strong>Reduced motion (and touch devices):</strong> the native cursor is kept, the ring is not rendered, and the lit layer displays fully unmasked — no content is gated behind pointer motion.</p>
+</aside>
+
+<div class="cursor-dot" aria-hidden="true"></div>
+<div class="cursor-ring" aria-hidden="true"><span class="cursor-label">VIEW</span></div>
+
+<main class="stage">
+  <section class="hero">
+    <p class="kicker">Halflight — photography for the hours nobody shoots</p>
+    <h1>We work in<br>the dark.</h1>
+    <p>Halflight is a two-person studio photographing cities between 2 and 5 a.m.
+    Available for commissions, patient clients, and <a href="#" onclick="return false">unreasonable ideas</a>.</p>
+  </section>
+
+  <section class="reveal-zone" id="revealZone" aria-label="Spotlight reveal">
+    <div class="layer layer-dull" aria-hidden="true">
+      <h2>Most portfolios show you everything at once.</h2>
+      <p>Every image lit, every case study expanded, every award in the first viewport. Nothing left to want.</p>
+    </div>
+    <div class="layer layer-lit">
+      <h2>Ours makes you <em>look for it.</em></h2>
+      <p>Move the light. The work is here — under your hand, at f/1.4, grain and all. What you find depends on where you point.</p>
+    </div>
+  </section>
+
+  <section class="work">
+    <h2>Selected nights</h2>
+    <div class="work-list">
+      <a class="work-item" data-cursor="view" href="#" onclick="return false"><span class="t">Harbor sodium — Rotterdam</span><span class="y">2025</span></a>
+      <a class="work-item" data-cursor="view" href="#" onclick="return false"><span class="t">Last trains — Tokyo</span><span class="y">2025</span></a>
+      <a class="work-item" data-cursor="view" href="#" onclick="return false"><span class="t">Snow static — Tromsø</span><span class="y">2024</span></a>
+      <a class="work-item" data-cursor="view" href="#" onclick="return false"><span class="t">Neon fog — San Francisco</span><span class="y">2024</span></a>
+    </div>
+  </section>
+</main>
+
+<footer class="hint">Your cursor is the flashlight</footer>
+
+<script>
+  // ----- about panel -----
+  const infoBtn = document.querySelector('.chrome-info');
+  const aboutPanel = document.getElementById('about');
+  infoBtn.addEventListener('click', () => {
+    const open = aboutPanel.hidden;
+    aboutPanel.hidden = !open;
+    infoBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  const finePointer = matchMedia('(pointer: fine)');
+
+  if (!reduceMotion.matches && finePointer.matches) {
+    document.body.classList.add('custom-cursor');
+
+    // ----- cursor: dot 1:1, ring lags with lerp -----
+    const dot = document.querySelector('.cursor-dot');
+    const ring = document.querySelector('.cursor-ring');
+    let mx = innerWidth / 2, my = innerHeight / 2, rx = mx, ry = my;
+
+    addEventListener('pointermove', e => { mx = e.clientX; my = e.clientY; }, { passive: true });
+
+    // cursor context states via event delegation
+    addEventListener('pointerover', e => {
+      const view = e.target.closest('[data-cursor="view"]');
+      const link = e.target.closest('a, button');
+      document.body.classList.toggle('cur-view', !!view);
+      document.body.classList.toggle('cur-link', !view && !!link);
+    }, { passive: true });
+
+    // ----- spotlight -----
+    const zone = document.getElementById('revealZone');
+    const lit = zone.querySelector('.layer-lit');
+    let sx = 0.5, sy = 0.5, tsx = 0.5, tsy = 0.5, r = 0, tr = 0;
+
+    zone.addEventListener('pointerenter', () => { tr = 220; });
+    zone.addEventListener('pointerleave', () => { tr = 0; });
+    zone.addEventListener('pointermove', e => {
+      const rect = zone.getBoundingClientRect();
+      tsx = (e.clientX - rect.left) / rect.width;
+      tsy = (e.clientY - rect.top) / rect.height;
+    }, { passive: true });
+
+    (function frame() {
+      rx += (mx - rx) * 0.16;
+      ry += (my - ry) * 0.16;
+      dot.style.transform = `translate(${mx}px, ${my}px)`;
+      ring.style.transform = `translate(${rx}px, ${ry}px)`;
+
+      sx += (tsx - sx) * 0.2;
+      sy += (tsy - sy) * 0.2;
+      r += (tr - r) * 0.1;
+      lit.style.setProperty('--sx', `${sx * 100}%`);
+      lit.style.setProperty('--sy', `${sy * 100}%`);
+      lit.style.setProperty('--r', `${r}px`);
+
+      requestAnimationFrame(frame);
+    })();
+  } else {
+    // no fine pointer or reduced motion: show the lit layer outright
+    document.body.classList.add('reveal-all');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>09 — Shared-Element Morph · Attention Lab</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-morph: cubic-bezier(0.32, 0.72, 0, 1); /* emphasized, iOS-sheet-like */
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px; padding: 14px 20px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 6px 14px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+  }
+
+  /* ---------- collection grid ---------- */
+  .stage { max-width: 1100px; margin: 0 auto; padding: 120px clamp(18px, 4vw, 48px) 100px; }
+  .stage-head { margin-bottom: 36px; }
+  .stage-head .kicker { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--gold); }
+  .stage-head h1 { font-size: clamp(32px, 4.6vw, 58px); letter-spacing: -0.025em; margin: 10px 0 0; }
+  .minerals {
+    display: grid; gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+  .mcard {
+    background: var(--bg-elev); border: 1px solid var(--line); border-radius: 16px;
+    padding: 18px; cursor: pointer; text-align: left; color: var(--ink); font-family: inherit;
+    transition: transform var(--dur-2) var(--ease-out), border-color var(--dur-2) ease;
+  }
+  .mcard:hover { transform: translateY(-4px); border-color: rgba(244, 243, 247, 0.22); }
+  .mcard:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .mcard .art {
+    aspect-ratio: 1; border-radius: 10px; display: grid; place-items: center;
+    background: radial-gradient(90% 90% at 30% 20%, var(--tint-a), var(--tint-b));
+  }
+  .mcard .art svg { width: 62%; height: 62%; }
+  .mcard h3 { margin: 12px 0 2px; font-size: 16px; letter-spacing: -0.01em; }
+  .mcard .f { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-dim); }
+
+  /* ---------- detail overlay ---------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 70;
+    background: rgba(5, 5, 9, 0.7); backdrop-filter: blur(10px);
+    opacity: 0; transition: opacity 0.35s ease;
+    display: grid; place-items: center; padding: 20px;
+  }
+  .overlay.open { opacity: 1; }
+  .overlay[hidden] { display: none; }
+  .sheet {
+    width: min(880px, 100%); background: var(--bg-elev);
+    border: 1px solid var(--line); border-radius: 22px;
+    display: grid; grid-template-columns: 300px 1fr; gap: 30px;
+    padding: 30px; align-items: start;
+    max-height: min(640px, calc(100vh - 80px)); overflow: auto;
+  }
+  @media (max-width: 720px) { .sheet { grid-template-columns: 1fr; max-height: calc(100vh - 60px); } }
+  .sheet .slot { aspect-ratio: 1; border-radius: 14px; }
+  /* detail copy staggers in after the morph */
+  .sheet .copy > * {
+    opacity: 0; transform: translateY(14px);
+  }
+  .overlay.open .copy > * {
+    opacity: 1; transform: none;
+    transition: opacity 0.45s var(--ease-out) var(--d), transform 0.45s var(--ease-out) var(--d);
+  }
+  .copy h2 { margin: 0; font-size: 34px; letter-spacing: -0.02em; --d: 0.22s; }
+  .copy .formula { font-family: var(--font-mono); color: var(--accent-2); font-size: 14px; margin: 6px 0 0; --d: 0.28s; }
+  .copy .desc { color: var(--ink-dim); line-height: 1.7; font-size: 15px; margin: 16px 0 0; --d: 0.34s; }
+  .copy .facts { display: flex; gap: 26px; margin: 22px 0 0; padding-top: 18px; border-top: 1px solid var(--line); --d: 0.4s; }
+  .facts div b { display: block; font-size: 17px; }
+  .facts div span { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); }
+  .closer {
+    margin: 26px 0 0; --d: 0.46s;
+    background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink); font: 600 13.5px var(--font-sans); padding: 10px 22px; cursor: pointer;
+    transition: border-color var(--dur-1) ease, background var(--dur-1) ease;
+  }
+  .closer:hover { border-color: var(--ink-dim); background: rgba(244,243,247,0.05); }
+  .closer:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* the flying shared element */
+  .flip-ghost {
+    position: fixed; z-index: 80; margin: 0; pointer-events: none;
+    border-radius: 10px; display: grid; place-items: center;
+    transform-origin: top left;
+    will-change: transform;
+  }
+  .flip-ghost svg { width: 62%; height: 62%; }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .mcard, .mcard:hover { transform: none; transition: none; }
+    .overlay { transition: none; }
+    .sheet .copy > *, .overlay.open .copy > * { opacity: 1; transform: none; transition: none; }
+  }
+</style>
+</head>
+<body>
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">09</span><span class="chrome-name">Shared-Element Morph</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>Shared-element transition (FLIP)</h2>
+  <p class="about-what">Click any specimen: its artwork physically travels from the grid into the detail sheet and settles there — one object moving between two layouts, rather than a cut between two screens.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> continuity. Jump cuts force the brain to re-find its place; a shared element carries the eye across the layout change, so attention never drops. The motion also explains the interface: <em>this</em> became <em>that</em> — model-building for free.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> classic FLIP — First/Last rects measured, the element Inverted with a transform, then Played over 550ms on cubic-bezier(.32,.72,0,1). Non-uniform scale is applied to width/height factors so corner radii stay sane; detail copy staggers in 60ms apart only after the morph is underway (220ms delay); the return trip runs 420ms — exits faster than entrances.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> the sheet opens and closes with a plain instant swap — no flying element, no staggered copy.</p>
+</aside>
+
+<main class="stage">
+  <div class="stage-head">
+    <p class="kicker">Lapidary · The mineral index</p>
+    <h1>Specimens, up close</h1>
+  </div>
+  <div class="minerals" id="minerals"></div>
+</main>
+
+<div class="overlay" id="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="dTitle">
+  <div class="sheet">
+    <div class="slot" id="slot" aria-hidden="true"></div>
+    <div class="copy">
+      <h2 id="dTitle"></h2>
+      <p class="formula" id="dFormula"></p>
+      <p class="desc" id="dDesc"></p>
+      <div class="facts">
+        <div><b id="dHard"></b><span>Mohs</span></div>
+        <div><b id="dSystem"></b><span>System</span></div>
+        <div><b id="dLoc"></b><span>Locality</span></div>
+      </div>
+      <button class="closer" id="closeBtn">Close ✕</button>
+    </div>
+  </div>
+</div>
+
+<footer class="hint">Click a specimen — watch it travel</footer>
+
+<script>
+  // ----- about panel -----
+  const infoBtn = document.querySelector('.chrome-info');
+  const aboutPanel = document.getElementById('about');
+  infoBtn.addEventListener('click', () => {
+    const open = aboutPanel.hidden;
+    aboutPanel.hidden = !open;
+    infoBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ----- data -----
+  const MINERALS = [
+    { name: 'Fluorite', formula: 'CaF₂', hard: '4', system: 'Cubic', loc: 'Rogerley, UK',
+      a: '#3a2a6e', b: '#141024', stroke: '#7c5cff',
+      desc: 'The daylight-fluorescent cubes of Rogerley glow green under UV — the mineral that gave fluorescence its name.' },
+    { name: 'Malachite', formula: 'Cu₂CO₃(OH)₂', hard: '3.5–4', system: 'Monoclinic', loc: 'Katanga, DRC',
+      a: '#0e4633', b: '#08120e', stroke: '#29e6a7',
+      desc: 'Banded copper carbonate laid down ring by ring, like a green tree stump made of chemistry.' },
+    { name: 'Rhodochrosite', formula: 'MnCO₃', hard: '3.5–4', system: 'Trigonal', loc: 'Sweet Home, USA',
+      a: '#6e2333', b: '#170a0e', stroke: '#ff4d6d',
+      desc: 'Raspberry-red rhombs from a silver mine that became more famous for its byproduct than its ore.' },
+    { name: 'Wulfenite', formula: 'PbMoO₄', hard: '2.75–3', system: 'Tetragonal', loc: 'Red Cloud, USA',
+      a: '#6e4a17', b: '#170f06', stroke: '#ffb74d',
+      desc: 'Paper-thin square plates of molten orange — so fragile that intact specimens are museum currency.' },
+    { name: 'Azurite', formula: 'Cu₃(CO₃)₂(OH)₂', hard: '3.5–4', system: 'Monoclinic', loc: 'Milpillas, MX',
+      a: '#1c2a6e', b: '#0a0d1e', stroke: '#5c8aff',
+      desc: 'Electric-blue copper carbonate that slowly, over centuries, turns itself into malachite.' },
+    { name: 'Spodumene', formula: 'LiAlSi₂O₆', hard: '6.5–7', system: 'Monoclinic', loc: 'Nuristan, AF',
+      a: '#5e3a6e', b: '#140d17', stroke: '#d98aff',
+      desc: 'Kunzite’s lilac blades bleach in sunlight — a gemstone with a strict no-daylight policy.' },
+  ];
+
+  function crystalSVG(stroke) {
+    return `<svg viewBox="0 0 100 100" aria-hidden="true">
+      <g fill="none" stroke="${stroke}" stroke-width="2" stroke-linejoin="round">
+        <path d="M50 8 L78 34 L68 84 L32 84 L22 34 Z" opacity="0.95"/>
+        <path d="M50 8 L44 50 L32 84 M50 8 L56 50 L68 84 M44 50 L56 50" opacity="0.55"/>
+        <path d="M22 34 L44 50 M78 34 L56 50" opacity="0.35"/>
+      </g>
+    </svg>`;
+  }
+
+  // ----- build grid -----
+  const grid = document.getElementById('minerals');
+  MINERALS.forEach((m, i) => {
+    const b = document.createElement('button');
+    b.className = 'mcard';
+    b.style.setProperty('--tint-a', m.a);
+    b.style.setProperty('--tint-b', m.b);
+    b.innerHTML = `<div class="art">${crystalSVG(m.stroke)}</div><h3>${m.name}</h3><div class="f">${m.formula}</div>`;
+    b.addEventListener('click', () => openDetail(i, b));
+    grid.appendChild(b);
+  });
+
+  // ----- FLIP morph -----
+  const overlay = document.getElementById('overlay');
+  const slot = document.getElementById('slot');
+  const closeBtn = document.getElementById('closeBtn');
+  let active = null; // { card, ghost, mineral }
+
+  function fillDetail(m) {
+    document.getElementById('dTitle').textContent = m.name;
+    document.getElementById('dFormula').textContent = m.formula;
+    document.getElementById('dDesc').textContent = m.desc;
+    document.getElementById('dHard').textContent = m.hard;
+    document.getElementById('dSystem').textContent = m.system;
+    document.getElementById('dLoc').textContent = m.loc;
+    slot.style.background = `radial-gradient(90% 90% at 30% 20%, ${m.a}, ${m.b})`;
+  }
+
+  function openDetail(i, card) {
+    const m = MINERALS[i];
+    fillDetail(m);
+    const art = card.querySelector('.art');
+
+    overlay.hidden = false;
+    // force layout so the slot has a rect before measuring
+    const first = art.getBoundingClientRect();
+    const last = slot.getBoundingClientRect();
+
+    if (reduceMotion.matches) {
+      slot.innerHTML = crystalSVG(m.stroke);
+      overlay.classList.add('open');
+      closeBtn.focus();
+      active = { card, ghost: null, mineral: m };
+      return;
+    }
+
+    // ghost: a fixed clone that flies from grid rect to sheet rect
+    const ghost = document.createElement('div');
+    ghost.className = 'flip-ghost';
+    ghost.innerHTML = crystalSVG(m.stroke);
+    ghost.style.background = `radial-gradient(90% 90% at 30% 20%, ${m.a}, ${m.b})`;
+    ghost.style.left = `${last.left}px`;
+    ghost.style.top = `${last.top}px`;
+    ghost.style.width = `${last.width}px`;
+    ghost.style.height = `${last.height}px`;
+    document.body.appendChild(ghost);
+
+    art.style.opacity = '0';
+    requestAnimationFrame(() => {
+      const dx = first.left - last.left, dy = first.top - last.top;
+      const sx = first.width / last.width, sy = first.height / last.height;
+      // Invert
+      ghost.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+      ghost.style.transition = 'none';
+      requestAnimationFrame(() => {
+        // Play
+        ghost.style.transition = 'transform 550ms cubic-bezier(0.32, 0.72, 0, 1)';
+        ghost.style.transform = 'translate(0, 0) scale(1, 1)';
+        overlay.classList.add('open');
+      });
+    });
+
+    active = { card, ghost, mineral: m };
+    closeBtn.focus();
+    document.addEventListener('keydown', onKey);
+  }
+
+  function closeDetail() {
+    if (!active) return;
+    const { card, ghost, mineral } = active;
+    const art = card.querySelector('.art');
+    document.removeEventListener('keydown', onKey);
+
+    if (reduceMotion.matches || !ghost) {
+      overlay.classList.remove('open');
+      overlay.hidden = true;
+      slot.innerHTML = '';
+      art.style.opacity = '';
+      card.focus();
+      active = null;
+      return;
+    }
+
+    const first = ghost.getBoundingClientRect();
+    const last = art.getBoundingClientRect();
+    const dx = last.left - first.left, dy = last.top - first.top;
+    const sx = last.width / first.width, sy = last.height / first.height;
+    ghost.style.transition = 'transform 420ms cubic-bezier(0.32, 0.72, 0, 1)';
+    ghost.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+    overlay.classList.remove('open');
+
+    ghost.addEventListener('transitionend', () => {
+      ghost.remove();
+      art.style.opacity = '';
+      overlay.hidden = true;
+      card.focus();
+    }, { once: true });
+    active = null;
+  }
+
+  function onKey(e) { if (e.key === 'Escape') closeDetail(); }
+  closeBtn.addEventListener('click', closeDetail);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeDetail(); });
+</script>
+</body>
+</html>

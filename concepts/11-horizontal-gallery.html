@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>11 — Horizontal Gallery · Attention Lab</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px; padding: 14px 20px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 6px 14px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+  }
+
+  /* ---------- intro ---------- */
+  .intro {
+    min-height: 62vh; display: flex; flex-direction: column; justify-content: center;
+    padding: 110px clamp(20px, 7vw, 110px) 40px;
+  }
+  .intro .kicker { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--accent-2); }
+  .intro h1 { margin: 14px 0 0; font-weight: 800; letter-spacing: -0.03em; font-size: clamp(38px, 6.8vw, 96px); line-height: 1.0; }
+  .intro p { color: var(--ink-dim); max-width: 46ch; line-height: 1.65; margin-top: 20px; }
+
+  /* ---------- horizontal section ---------- */
+  .h-wrap { position: relative; height: 420vh; }
+  .h-sticky { position: sticky; top: 0; height: 100vh; overflow: hidden; }
+  .h-track { display: flex; height: 100%; width: max-content; will-change: transform; }
+  .panel {
+    width: 78vw; min-width: 420px; height: 100%; flex: none;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 90px clamp(28px, 6vw, 90px);
+    border-right: 1px solid var(--line);
+    position: relative; overflow: hidden;
+  }
+  @media (max-width: 640px) { .panel { width: 88vw; min-width: 0; } }
+  .panel .idx {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.2em; color: var(--ink-dim);
+  }
+  .panel h2 {
+    font-size: clamp(44px, 8vw, 120px); font-weight: 800; letter-spacing: -0.035em;
+    line-height: 0.98; margin: 12px 0 0; text-transform: uppercase;
+    color: var(--panel-c);
+    will-change: transform;
+  }
+  .panel .desc { max-width: 44ch; color: var(--ink-dim); line-height: 1.7; margin-top: 22px; font-size: 16px; }
+  .panel .swatch {
+    position: absolute; right: -6%; top: 12%; width: 34%; aspect-ratio: 1;
+    border-radius: 50%; filter: blur(46px); opacity: 0.5;
+    background: var(--panel-c);
+    will-change: transform;
+  }
+  .panel .code {
+    margin-top: 26px; font-family: var(--font-mono); font-size: 12.5px; color: var(--panel-c);
+    letter-spacing: 0.1em;
+  }
+
+  /* progress dots */
+  .dots {
+    position: absolute; bottom: 46px; left: 50%; translate: -50% 0; display: flex; gap: 8px; z-index: 5;
+  }
+  .dots i {
+    width: 26px; height: 3px; border-radius: 2px; background: rgba(244, 243, 247, 0.16);
+    overflow: hidden; position: relative;
+  }
+  .dots i::after {
+    content: ""; position: absolute; inset: 0; background: var(--ink);
+    transform: scaleX(var(--fill, 0)); transform-origin: left;
+  }
+
+  /* ---------- outro ---------- */
+  .outro { padding: 20vh clamp(20px, 7vw, 110px) 24vh; }
+  .outro p { color: var(--ink-dim); max-width: 50ch; line-height: 1.7; font-size: 17px; }
+  .outro b { color: var(--ink); }
+
+  /* ---------- reduced motion: plain horizontal scroller ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .h-wrap { height: auto; }
+    .h-sticky { position: static; height: auto; }
+    .h-track { overflow-x: auto; width: auto; transform: none !important; }
+    .panel { height: 78vh; }
+    .panel h2, .panel .swatch { transform: none !important; }
+    .dots { display: none; }
+  }
+</style>
+</head>
+<body>
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">11</span><span class="chrome-name">Horizontal Gallery</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>Pinned horizontal scroll gallery</h2>
+  <p class="about-what">A section pins itself to the viewport and converts your vertical scroll into horizontal travel through four exhibition rooms, each with its own internal parallax and a segmented progress indicator.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> the axis flip is a violated expectation — the page suddenly moves the “wrong” way, which re-engages attention exactly when scrolling has become automatic. Because travel is still scroll-driven, users keep full control; it surprises without hijacking.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> a 420vh wrapper + <code>position: sticky</code> viewport; track translateX maps wrapper progress with a 0.06 lerp so panels glide rather than track raw scroll; titles counter-translate 60px and glow orbs 140px for depth; progress dots fill per-panel. All motion is transform-only, on the compositor.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> the pin is removed entirely — the gallery becomes an ordinary horizontally scrollable strip with no scroll capture, no parallax.</p>
+</aside>
+
+<main class="stage">
+  <section class="intro">
+    <p class="kicker">Pigment · Rooms 1–4</p>
+    <h1>An exhibition<br>of dangerous colors</h1>
+    <p>Four pigments that poisoned, bankrupted, or obsessed the people who made them. The gallery runs sideways — keep scrolling.</p>
+  </section>
+
+  <div class="h-wrap" id="hWrap">
+    <div class="h-sticky">
+      <div class="h-track" id="hTrack">
+        <section class="panel" style="--panel-c: #29e6a7">
+          <span class="swatch" data-px="140" aria-hidden="true"></span>
+          <p class="idx">Room 01 / Arsenic</p>
+          <h2 data-px="60">Scheele's<br>Green</h2>
+          <p class="desc">The Victorian obsession: wallpaper, dresses, candy — all laced with copper arsenite. Beautiful rooms that slowly poisoned their occupants. Napoleon's exile wallpaper tested positive.</p>
+          <p class="code">CuHAsO₃ · c. 1775 · discontinued, emphatically</p>
+        </section>
+        <section class="panel" style="--panel-c: #7c5cff">
+          <span class="swatch" data-px="140" aria-hidden="true"></span>
+          <p class="idx">Room 02 / Empire</p>
+          <h2 data-px="60">Tyrian<br>Purple</h2>
+          <p class="desc">Twelve thousand murex snails for a single gram. Rome wrote laws about who could wear it; wearing it without rank was treason. The color was the empire's access-control system.</p>
+          <p class="code">6,6′-dibromoindigo · c. 1200 BCE · 250,000 snails/oz</p>
+        </section>
+        <section class="panel" style="--panel-c: #ffb74d">
+          <span class="swatch" data-px="140" aria-hidden="true"></span>
+          <p class="idx">Room 03 / The dead</p>
+          <h2 data-px="60">Mummy<br>Brown</h2>
+          <p class="desc">Exactly what it sounds like: ground Egyptian mummies, prized by the Pre-Raphaelites for flesh tones. Production ended when painters learned the recipe — and when the supply ran out.</p>
+          <p class="code">bitumen + myrrh + human remains · banned by decency</p>
+        </section>
+        <section class="panel" style="--panel-c: #ff4d6d">
+          <span class="swatch" data-px="140" aria-hidden="true"></span>
+          <p class="idx">Room 04 / Radiance</p>
+          <h2 data-px="60">Radium<br>Girl Glow</h2>
+          <p class="desc">Undark paint made watch dials luminous and factory workers terminally ill. The women who painted them licked their brushes to a point. Their court case invented modern occupational law.</p>
+          <p class="code">Ra-226 + ZnS · 1917–1938 · half-life 1,600 yrs</p>
+        </section>
+      </div>
+      <div class="dots" id="dots" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    </div>
+  </div>
+
+  <section class="outro">
+    <p><b>The pattern:</b> pinning the viewport and rotating the scroll axis turns a list into a place. Users stop skimming items and start walking rooms — dwell time roughly doubles when content becomes territory.</p>
+  </section>
+</main>
+
+<footer class="hint">Keep scrolling down — the room moves sideways</footer>
+
+<script>
+  // ----- about panel -----
+  const infoBtn = document.querySelector('.chrome-info');
+  const aboutPanel = document.getElementById('about');
+  infoBtn.addEventListener('click', () => {
+    const open = aboutPanel.hidden;
+    aboutPanel.hidden = !open;
+    infoBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ----- pinned horizontal drive -----
+  if (!reduceMotion.matches) {
+    const wrap = document.getElementById('hWrap');
+    const track = document.getElementById('hTrack');
+    const dots = [...document.querySelectorAll('#dots i')];
+    const parallaxEls = [...track.querySelectorAll('[data-px]')];
+    const panels = [...track.querySelectorAll('.panel')];
+    let x = 0;
+
+    (function frame() {
+      const r = wrap.getBoundingClientRect();
+      const total = r.height - innerHeight;
+      const p = Math.min(Math.max(-r.top / total, 0), 1);
+      const max = track.scrollWidth - innerWidth;
+      const target = p * max;
+      x += (target - x) * 0.06;                       // glide, don't track raw
+      track.style.transform = `translateX(${-x}px)`;
+
+      // internal parallax: elements counter-move by distance from viewport center
+      for (const el of parallaxEls) {
+        const pr = el.closest('.panel').getBoundingClientRect();
+        const center = (pr.left + pr.width / 2 - innerWidth / 2) / innerWidth; // -1..1
+        el.style.transform = `translateX(${center * +el.dataset.px}px)`;
+      }
+
+      // segmented progress
+      const seg = p * panels.length;
+      dots.forEach((d, i) => d.style.setProperty('--fill',
+        Math.min(Math.max(seg - i, 0), 1).toFixed(3)));
+
+      requestAnimationFrame(frame);
+    })();
+  }
+</script>
+</body>
+</html>
