@@ -1,0 +1,35 @@
+<!-- @dsCard group="Components" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Heart burst · Attention Lab</title>
+<style>
+:root{--bg:#08080d;--bg-elev:#10101a;--ink:#f4f3f7;--ink-dim:#8f8ea0;--accent:#7c5cff;--accent-2:#29e6a7;--hot:#ff4d6d;--gold:#ffb74d;--line:rgba(244,243,247,.09);--sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.2,0,0,1);--ease-bounce:cubic-bezier(.34,1.56,.64,1)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:grid;place-items:center;padding:34px 18px 22px}
+.card-label{position:fixed;top:10px;left:14px;font:10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+.wrapb{position:relative}
+.h{background:none;border:1px solid var(--line);border-radius:999px;cursor:pointer;width:74px;height:74px;display:grid;place-items:center;transition:border-color .3s ease,background .3s ease}
+.h svg{width:30px;height:30px;fill:none;stroke:var(--ink-dim);stroke-width:1.8;transition:stroke .15s ease}
+.h:hover svg{stroke:var(--hot)}
+.h.on{border-color:rgba(255,77,109,.5);background:rgba(255,77,109,.08)}
+.h.on svg{fill:var(--hot);stroke:var(--hot);animation:pop .45s var(--ease-bounce)}
+@keyframes pop{0%{transform:scale(0)}55%{transform:scale(1.25)}100%{transform:scale(1)}}
+.p{position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;pointer-events:none;animation:burst .65s var(--ease-out) forwards}
+@keyframes burst{from{transform:translate(-50%,-50%) translate(0,0) scale(1);opacity:1}to{transform:translate(-50%,-50%) translate(var(--dx),var(--dy)) scale(.2);opacity:0}}
+</style></head>
+<body>
+<span class="card-label">Heart burst</span>
+<div class="wrapb" id="w"><button class="h" id="h" aria-pressed="false" aria-label="Like"><svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.9-9.7-9.2C.7 8.6 2.6 5 6 5c2 0 3.4 1.1 4.2 2.4L12 9l1.8-1.6C14.6 6.1 16 5 18 5c3.4 0 5.3 3.6 3.7 6.8C19.5 16.1 12 21 12 21z"/></svg></button></div>
+<script>
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const h=document.getElementById("h"),w=document.getElementById("w"),C=["#ff4d6d","#ffb74d","#7c5cff","#29e6a7"];
+h.addEventListener("click",()=>{const on=h.classList.toggle("on");h.setAttribute("aria-pressed",String(on));
+if(!on||RM)return;
+for(let i=0;i<12;i++){const p=document.createElement("span");p.className="p";
+const a=(i/12)*Math.PI*2+Math.random()*.4,d=44+Math.random()*26;
+p.style.setProperty("--dx",Math.cos(a)*d+"px");p.style.setProperty("--dy",Math.sin(a)*d+"px");
+p.style.background=C[i%4];w.appendChild(p);p.addEventListener("animationend",()=>p.remove());}});
+</script>
+</body></html>

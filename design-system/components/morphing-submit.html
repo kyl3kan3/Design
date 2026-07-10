@@ -1,0 +1,32 @@
+<!-- @dsCard group="Components" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Morphing submit · Attention Lab</title>
+<style>
+:root{--bg:#08080d;--bg-elev:#10101a;--ink:#f4f3f7;--ink-dim:#8f8ea0;--accent:#7c5cff;--accent-2:#29e6a7;--hot:#ff4d6d;--gold:#ffb74d;--line:rgba(244,243,247,.09);--sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.2,0,0,1);--ease-bounce:cubic-bezier(.34,1.56,.64,1)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:grid;place-items:center;padding:34px 18px 22px}
+.card-label{position:fixed;top:10px;left:14px;font:10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+.m{position:relative;border:none;cursor:pointer;color:#0a0a10;background:var(--accent-2);border-radius:12px;font:600 15px var(--sans);width:190px;height:52px;transition:width .45s var(--ease-snap),border-radius .45s var(--ease-snap),background .3s ease}
+.m .l{transition:opacity .15s ease}
+.m.working{width:52px;border-radius:999px;background:#23233a;pointer-events:none}.m.working .l{opacity:0}
+.m .sp{position:absolute;inset:0;margin:auto;width:22px;height:22px;border-radius:50%;border:2.5px solid rgba(244,243,247,.2);border-top-color:var(--accent-2);opacity:0}
+.m.working .sp{opacity:1;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.m.done{width:52px;border-radius:999px;background:var(--accent-2);pointer-events:none}.m.done .sp{display:none}
+.m .ck{position:absolute;inset:0;margin:auto;width:22px;height:22px;stroke:#0a0a10;stroke-width:3;fill:none;stroke-dasharray:24;stroke-dashoffset:24}
+.m.done .ck{animation:draw .4s var(--ease-out) .1s forwards}@keyframes draw{to{stroke-dashoffset:0}}
+</style></head>
+<body>
+<span class="card-label">Morphing submit</span>
+<button class="m" id="m"><span class="l">Place order</span><span class="sp" aria-hidden="true"></span><svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button><span role="status" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)" id="st"></span>
+<script>
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const m=document.getElementById("m"),st=document.getElementById("st");
+m.addEventListener("click",()=>{if(m.classList.contains("working")||m.classList.contains("done"))return;
+m.classList.add("working");m.setAttribute("aria-busy","true");st.textContent="Placing order…";
+setTimeout(()=>{m.classList.remove("working");m.classList.add("done");m.setAttribute("aria-busy","false");st.textContent="Order placed."},1600);
+setTimeout(()=>{m.classList.remove("done");st.textContent=""},4200);});
+</script>
+</body></html>

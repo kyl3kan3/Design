@@ -1,0 +1,50 @@
+<!-- @dsCard group="Foundations" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Motion · Attention Lab</title>
+<style>
+:root{--bg:#08080d;--bg-elev:#10101a;--ink:#f4f3f7;--ink-dim:#8f8ea0;--accent:#7c5cff;--accent-2:#29e6a7;--hot:#ff4d6d;--gold:#ffb74d;--line:rgba(244,243,247,.09);--sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.2,0,0,1);--ease-bounce:cubic-bezier(.34,1.56,.64,1)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:grid;place-items:center;padding:34px 18px 22px}
+.card-label{position:fixed;top:10px;left:14px;font:10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+.wrap{width:min(780px,94vw);display:flex;flex-direction:column;gap:20px}
+.sec h3{font:11px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--accent-2);margin:0 0 10px;font-weight:600}
+.lane{display:grid;grid-template-columns:150px 1fr;gap:14px;align-items:center;padding:7px 0;border-bottom:1px solid var(--line)}
+.lane .nm{font:11.5px var(--mono);color:var(--ink-dim)}.lane .nm b{color:var(--ink);display:block}
+.track{position:relative;height:22px}.track::before{content:"";position:absolute;inset:50% 0 auto;height:1px;background:var(--line)}
+.dot{position:absolute;top:50%;left:0;width:16px;height:16px;margin-top:-8px;border-radius:5px;background:var(--c,var(--accent))}
+.play .dot{transform:translateX(var(--tw))}
+.stag{display:flex;gap:8px}
+.stag i{width:26px;height:26px;border-radius:8px;background:var(--accent);opacity:0;transform:translateY(14px)}
+.play2 .stag i{animation:in .5s var(--ease-out) forwards;animation-delay:calc(var(--i)*60ms)}
+@keyframes in{to{opacity:1;transform:none}}
+.btn{align-self:flex-start;background:#6f4dff;color:#fff;border:none;border-radius:999px;font:600 13.5px var(--sans);padding:11px 22px;cursor:pointer}
+.rules{font-size:12.5px;color:var(--ink-dim);line-height:1.65}.rules b{color:var(--ink)}
+</style></head>
+<body>
+<span class="card-label">Motion</span>
+<div class="wrap">
+<div class="sec"><h3>Duration ramp × easing personality</h3>
+<div id="lanes">
+<div class="lane" data-d="150" data-e="var(--ease-snap)" style="--c:#8f8ea0"><span class="nm"><b>Micro · 150ms</b>feedback: press, toggle</span><div class="track"><span class="dot"></span></div></div>
+<div class="lane" data-d="300" data-e="var(--ease-out)" style="--c:#29e6a7"><span class="nm"><b>Standard · 300ms</b>hover, small transitions</span><div class="track"><span class="dot"></span></div></div>
+<div class="lane" data-d="600" data-e="var(--ease-out)" style="--c:#7c5cff"><span class="nm"><b>Entrance · 600ms</b>reveals, expo-out</span><div class="track"><span class="dot"></span></div></div>
+<div class="lane" data-d="600" data-e="var(--ease-bounce)" style="--c:#ffb74d"><span class="nm"><b>Expressive · 600ms</b>overshoot ≤15%, rationed</span><div class="track"><span class="dot"></span></div></div>
+</div></div>
+<div class="sec"><h3>Stagger · 60ms apart, total under 1s</h3><div class="stag" id="stag"><i style="--i:0"></i><i style="--i:1"></i><i style="--i:2"></i><i style="--i:3"></i><i style="--i:4"></i><i style="--i:5"></i><i style="--i:6"></i></div></div>
+<button class="btn" id="play">Play all</button>
+<p class="rules"><b>Rules:</b> entrances decelerate, exits accelerate and run ~30% faster; nothing a user waits on exceeds 1s; only transform/opacity/filter animate; ambient loops stay slow and stop under reduced motion; one loud element per view.</p>
+</div>
+<script>
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const lanes=[...document.querySelectorAll(".lane")];
+document.getElementById("play").addEventListener("click",()=>{
+  lanes.forEach(l=>{const d=l.querySelector(".dot");const w=l.querySelector(".track").offsetWidth-16;
+    l.classList.remove("play");d.style.transition="none";d.style.transform="";void d.offsetWidth;
+    d.style.setProperty("--tw",w+"px");d.style.transition="transform "+l.dataset.d+"ms "+l.dataset.e;l.classList.add("play");});
+  const s=document.getElementById("stag").parentElement;s.classList.remove("play2");void s.offsetWidth;s.classList.add("play2");
+});
+</script>
+</body></html>

@@ -1,0 +1,28 @@
+<!-- @dsCard group="Components" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spotlight card · Attention Lab</title>
+<style>
+:root{--bg:#08080d;--bg-elev:#10101a;--ink:#f4f3f7;--ink-dim:#8f8ea0;--accent:#7c5cff;--accent-2:#29e6a7;--hot:#ff4d6d;--gold:#ffb74d;--line:rgba(244,243,247,.09);--sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.2,0,0,1);--ease-bounce:cubic-bezier(.34,1.56,.64,1)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:grid;place-items:center;padding:34px 18px 22px}
+.card-label{position:fixed;top:10px;left:14px;font:10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+.card{position:relative;border-radius:18px;overflow:hidden;background:var(--bg-elev);border:1px solid var(--line);padding:26px;width:min(400px,88vw)}
+.card::before{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%),rgba(124,92,255,.9),rgba(41,230,167,.25) 45%,transparent 65%);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);mask-composite:exclude;opacity:0;transition:opacity .35s ease;pointer-events:none}
+.card::after{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(320px circle at var(--mx,50%) var(--my,50%),rgba(124,92,255,.1),transparent 60%);opacity:0;transition:opacity .35s ease;pointer-events:none}
+.card:hover::before,.card:hover::after{opacity:1}
+.card h3{margin:0 0 6px;font-size:17px}
+.card p{margin:0;color:var(--ink-dim);font-size:13.5px;line-height:1.55}
+</style></head>
+<body>
+<span class="card-label">Spotlight card</span>
+<div class="card" id="c"><h3>Patch anywhere</h3><p>Sweep your cursor across this card — a moving point of light locked to the hand is the strongest pre-attentive pairing there is: motion plus luminance contrast.</p></div>
+<script>
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+if(!RM){const c=document.getElementById("c");
+c.addEventListener("pointermove",e=>{const r=c.getBoundingClientRect();
+c.style.setProperty("--mx",(e.clientX-r.left)+"px");c.style.setProperty("--my",(e.clientY-r.top)+"px");},{passive:true});}
+</script>
+</body></html>

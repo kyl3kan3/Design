@@ -1,0 +1,31 @@
+<!-- @dsCard group="Components" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stat counter · Attention Lab</title>
+<style>
+:root{--bg:#08080d;--bg-elev:#10101a;--ink:#f4f3f7;--ink-dim:#8f8ea0;--accent:#7c5cff;--accent-2:#29e6a7;--hot:#ff4d6d;--gold:#ffb74d;--line:rgba(244,243,247,.09);--sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.2,0,0,1);--ease-bounce:cubic-bezier(.34,1.56,.64,1)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:grid;place-items:center;padding:34px 18px 22px}
+.card-label{position:fixed;top:10px;left:14px;font:10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+.stat{text-align:center}
+.num{font-weight:800;font-size:64px;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1;color:var(--accent-2)}
+.num em{font-style:normal;font-size:.4em;color:var(--ink-dim)}
+.lb{font:11px var(--mono);letter-spacing:.18em;text-transform:uppercase;color:var(--ink-dim);margin-top:10px}
+.rb{margin-top:18px;background:none;border:1px solid var(--line);border-radius:999px;color:var(--ink);font:600 13px var(--sans);padding:10px 20px;cursor:pointer}
+.rb:hover{border-color:var(--ink-dim)}
+</style></head>
+<body>
+<span class="card-label">Stat counter</span>
+<div class="stat"><div class="num"><span id="n">0</span><em> m</em></div><div class="lb">Summit today</div>
+<button class="rb" id="rb">Replay ↺</button></div>
+<script>
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const el=document.getElementById("n"),TARGET=8849;
+function play(){if(RM){el.textContent=TARGET.toLocaleString("en-US");return}
+const t0=performance.now();(function tick(t){const p=Math.min((t-t0)/1400,1);const e=1-Math.pow(1-p,3);
+el.textContent=Math.round(TARGET*e).toLocaleString("en-US");if(p<1)requestAnimationFrame(tick);})(t0);}
+document.getElementById("rb").addEventListener("click",play);play();
+</script>
+</body></html>

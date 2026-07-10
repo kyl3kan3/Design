@@ -1,0 +1,36 @@
+<!-- @dsCard group="Components" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bell + unread badge · Attention Lab</title>
+<style>
+:root{--bg:#08080d;--bg-elev:#10101a;--ink:#f4f3f7;--ink-dim:#8f8ea0;--accent:#7c5cff;--accent-2:#29e6a7;--hot:#ff4d6d;--gold:#ffb74d;--line:rgba(244,243,247,.09);--sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.2,0,0,1);--ease-bounce:cubic-bezier(.34,1.56,.64,1)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:grid;place-items:center;padding:34px 18px 22px}
+.card-label{position:fixed;top:10px;left:14px;font:10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+.row{display:flex;gap:26px;align-items:center}
+.bw{position:relative}
+.bell{background:none;border:1px solid var(--line);border-radius:10px;padding:11px 13px;cursor:pointer;color:var(--ink-dim);transition:color .15s ease,border-color .15s ease}
+.bell:hover{color:var(--ink);border-color:var(--ink-dim)}
+.bell svg{width:20px;height:20px;display:block}
+.bell.ring svg{animation:ring .7s var(--ease-out);transform-origin:50% 2px}
+@keyframes ring{0%{transform:rotate(0)}15%{transform:rotate(18deg)}30%{transform:rotate(-14deg)}45%{transform:rotate(9deg)}60%{transform:rotate(-5deg)}75%{transform:rotate(2deg)}100%{transform:rotate(0)}}
+.badge{position:absolute;top:-7px;right:-7px;min-width:19px;height:19px;background:var(--hot);color:#0a0a10;border-radius:999px;font:700 11px/19px var(--mono);text-align:center;padding:0 5px;scale:0;transition:scale .3s var(--ease-bounce)}
+.badge.on{scale:1}.badge.pop{animation:bp .35s var(--ease-bounce)}@keyframes bp{50%{scale:1.45}}
+.add{background:#23233a;color:var(--ink);border:none;border-radius:10px;padding:12px 20px;cursor:pointer;font:600 13.5px var(--sans)}
+</style></head>
+<body>
+<span class="card-label">Bell + unread badge</span>
+<div class="row"><button class="add" id="add">Simulate event</button>
+<div class="bw"><button class="bell" id="bell" aria-label="Notifications, 0 unread"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 8-3 8h18s-3-1-3-8"/><path d="M13.7 20a2 2 0 0 1-3.4 0"/></svg></button><span class="badge" id="badge" aria-hidden="true">0</span></div></div>
+<script>
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let n=0;const badge=document.getElementById("badge"),bell=document.getElementById("bell");
+document.getElementById("add").addEventListener("click",()=>{n++;badge.textContent=n;badge.classList.add("on");
+bell.setAttribute("aria-label","Notifications, "+n+" unread");
+if(!RM){badge.classList.remove("pop");void badge.offsetWidth;badge.classList.add("pop");
+bell.classList.remove("ring");void bell.offsetWidth;bell.classList.add("ring");}});
+bell.addEventListener("click",()=>{n=0;badge.classList.remove("on");bell.setAttribute("aria-label","Notifications, 0 unread");});
+</script>
+</body></html>

@@ -1,0 +1,43 @@
+<!-- @dsCard group="Components" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Redaction reveal · Attention Lab</title>
+<style>
+:root{--bg:#08080d;--bg-elev:#10101a;--ink:#f4f3f7;--ink-dim:#8f8ea0;--accent:#7c5cff;--accent-2:#29e6a7;--hot:#ff4d6d;--gold:#ffb74d;--line:rgba(244,243,247,.09);--sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.2,0,0,1);--ease-bounce:cubic-bezier(.34,1.56,.64,1)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:grid;place-items:center;padding:34px 18px 22px}
+.card-label{position:fixed;top:10px;left:14px;font:10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+.wrapr{width:min(430px,90vw);position:relative}
+.line{font:600 26px var(--mono);min-height:2.6em;line-height:1.3}
+.line .n{color:rgba(143,142,160,.4)}
+.stamp{position:absolute;top:-24px;right:0;font:700 11px var(--sans);letter-spacing:.3em;text-transform:uppercase;color:var(--hot);border:2px solid var(--hot);border-radius:5px;padding:7px 10px 7px 13px;transform:rotate(-8deg);opacity:0;pointer-events:none}
+.stamp.land{animation:sl .3s var(--ease-snap) forwards}
+@keyframes sl{from{opacity:0;transform:rotate(-8deg) scale(2.1)}60%{opacity:.9;transform:rotate(-8deg) scale(.96)}to{opacity:.85;transform:rotate(-8deg) scale(1)}}
+.rb{margin-top:20px;background:none;border:1px solid var(--line);border-radius:999px;color:var(--ink);font:600 13px var(--sans);padding:10px 20px;cursor:pointer}
+.rb:hover{border-color:var(--ink-dim)}
+</style></head>
+<body>
+<span class="card-label">Redaction reveal</span>
+<div class="wrapr"><div class="line" id="line" aria-label="We break in so they can't."></div><span class="stamp" id="stamp" aria-hidden="true">Declassified</span>
+<button class="rb" id="rb">Replay ↺</button></div>
+<script>
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const TXT="We break in\nso they can't.",G="████▓▓▌";
+const line=document.getElementById("line"),stamp=document.getElementById("stamp");let timer=null;
+function play(){if(timer)cancelAnimationFrame(timer);stamp.classList.remove("land");
+if(RM){line.innerHTML="";TXT.split("").forEach(ch=>{if(ch==="\n"){line.appendChild(document.createElement("br"));return}const s=document.createElement("span");s.textContent=ch;line.appendChild(s)});stamp.classList.add("land");return}
+const chars=TXT.split("").map((ch,i)=>({ch,at:200+i*45+Math.random()*300,el:null}));
+line.innerHTML="";for(const c of chars){if(c.ch==="\n"){line.appendChild(document.createElement("br"));continue}c.el=document.createElement("span");line.appendChild(c.el);}
+const t0=performance.now();let f=0;
+(function step(t){const dt=t-t0;let done=true;f++;
+for(const c of chars){if(!c.el)continue;
+if(dt>=c.at){if(c.el.className!==""){c.el.className="";c.el.textContent=c.ch}}
+else{done=false;if(c.ch===" "){c.el.textContent=" ";continue}
+if(f%2===0){c.el.className="n";c.el.textContent=G[Math.floor(Math.random()*G.length)]}}}
+if(!done){timer=requestAnimationFrame(step);return}
+timer=null;setTimeout(()=>stamp.classList.add("land"),200);})(t0);}
+document.getElementById("rb").addEventListener("click",play);play();
+</script>
+</body></html>

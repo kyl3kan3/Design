@@ -1,0 +1,31 @@
+<!-- @dsCard group="Foundations" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Colors · Attention Lab</title>
+<style>
+:root{--bg:#08080d;--bg-elev:#10101a;--ink:#f4f3f7;--ink-dim:#8f8ea0;--accent:#7c5cff;--accent-2:#29e6a7;--hot:#ff4d6d;--gold:#ffb74d;--line:rgba(244,243,247,.09);--sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.2,0,0,1);--ease-bounce:cubic-bezier(.34,1.56,.64,1)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:grid;place-items:center;padding:34px 18px 22px}
+.card-label{position:fixed;top:10px;left:14px;font:10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+.wrap{width:min(780px,94vw)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.sw{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg-elev)}
+.sw .chip{height:74px}
+.sw .m{padding:10px 12px;font:11px var(--mono);letter-spacing:.06em;color:var(--ink-dim);line-height:1.7}
+.sw .m b{display:block;color:var(--ink);font-size:12px}
+.note{margin-top:16px;font-size:12.5px;color:var(--ink-dim);line-height:1.6;max-width:70ch}
+.note b{color:var(--ink)}
+</style></head>
+<body>
+<span class="card-label">Colors</span>
+<div class="wrap">
+<div class="grid" id="grid"></div>
+<p class="note"><b>Rules:</b> the canvas stays near-black with a violet cast; ink carries content. Accents are attention currency — violet for brand moments, signal green for success/live, hot coral for urgency (never decoration), gold rationed to highlights. Small text on accent fills uses the darkened #6f4dff or dark-on-fill.</p></div>
+<script>
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const T=[["--bg","#08080d","Canvas","near-black, violet cast"],["--bg-elev","#10101a","Surface","cards, rails, sheets"],["--ink","#f4f3f7","Ink","primary content"],["--ink-dim","#8f8ea0","Ink dim","secondary, 5.9:1 on surface"],["--accent","#7c5cff","Accent","brand moments; #6f4dff under white text"],["--accent-2","#29e6a7","Signal","success, live, positive"],["--hot","#ff4d6d","Hot","urgency only; dark labels on fills"],["--gold","#ffb74d","Gold","highlights, sparingly"]];
+document.getElementById("grid").innerHTML=T.map(([v,hex,n,d])=>'<div class="sw"><div class="chip" style="background:'+hex+'"></div><div class="m"><b>'+n+'</b>'+v+' · '+hex+'<br>'+d+'</div></div>').join("");
+</script>
+</body></html>

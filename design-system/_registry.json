@@ -1,0 +1,282 @@
+[
+  {
+    "name": "Colors",
+    "path": "foundations/colors.html",
+    "group": "Foundations",
+    "viewport": {
+      "width": 860,
+      "height": 560
+    },
+    "subtitle": "Dark-lab palette · one loud accent per view"
+  },
+  {
+    "name": "Typography",
+    "path": "foundations/type.html",
+    "group": "Foundations",
+    "viewport": {
+      "width": 860,
+      "height": 560
+    },
+    "subtitle": "System stack · display 800 tight, mono labels wide"
+  },
+  {
+    "name": "Motion",
+    "path": "foundations/motion.html",
+    "group": "Foundations",
+    "viewport": {
+      "width": 860,
+      "height": 620
+    },
+    "subtitle": "Duration ramp, easing personalities, stagger — press play"
+  },
+  {
+    "name": "Magnetic button",
+    "path": "components/magnetic-button.html",
+    "group": "Components",
+    "viewport": {
+      "width": 460,
+      "height": 300
+    },
+    "subtitle": "Pull 35% in a 120px radius · spring-back lerp 0.12 · shine sweep"
+  },
+  {
+    "name": "Spring toggle",
+    "path": "components/spring-toggle.html",
+    "group": "Components",
+    "viewport": {
+      "width": 380,
+      "height": 240
+    },
+    "subtitle": "Squash 15% on press · travel with overshoot"
+  },
+  {
+    "name": "Morphing submit",
+    "path": "components/morphing-submit.html",
+    "group": "Components",
+    "viewport": {
+      "width": 420,
+      "height": 240
+    },
+    "subtitle": "Button → spinner → check · one element, no jump cuts"
+  },
+  {
+    "name": "Heart burst",
+    "path": "components/heart-burst.html",
+    "group": "Components",
+    "viewport": {
+      "width": 380,
+      "height": 260
+    },
+    "subtitle": "12 particles · 650ms decay · 25% overshoot pop"
+  },
+  {
+    "name": "Star cascade",
+    "path": "components/star-cascade.html",
+    "group": "Components",
+    "viewport": {
+      "width": 420,
+      "height": 220
+    },
+    "subtitle": "Sequential 60ms light-up · roving tabindex + arrow keys"
+  },
+  {
+    "name": "Toast stack",
+    "path": "components/toast.html",
+    "group": "Components",
+    "viewport": {
+      "width": 520,
+      "height": 380
+    },
+    "subtitle": "Spring entrance 500ms, exits 250ms · lifetime bar pauses on hover/focus"
+  },
+  {
+    "name": "Bell + unread badge",
+    "path": "components/unread-badge.html",
+    "group": "Components",
+    "viewport": {
+      "width": 420,
+      "height": 240
+    },
+    "subtitle": "Badge pops 45% past scale · bell rings 5 decaying swings"
+  },
+  {
+    "name": "Spotlight card",
+    "path": "components/spotlight-card.html",
+    "group": "Components",
+    "viewport": {
+      "width": 520,
+      "height": 340
+    },
+    "subtitle": "Cursor-tracked gradient ring masked to a 1px border"
+  },
+  {
+    "name": "Redaction reveal",
+    "path": "components/redaction-line.html",
+    "group": "Components",
+    "viewport": {
+      "width": 520,
+      "height": 260
+    },
+    "subtitle": "Blocks shimmer at ~33ms, settle left → right · stamp lands after"
+  },
+  {
+    "name": "Stat counter",
+    "path": "components/counter.html",
+    "group": "Components",
+    "viewport": {
+      "width": 420,
+      "height": 240
+    },
+    "subtitle": "Cubic ease-out roll over 1.4s · tabular numerals, no digit jitter"
+  },
+  {
+    "name": "Kinetic Typography",
+    "path": "concepts/01-kinetic-typography.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "Masked reveals · cursor-repelled letters · word masks"
+  },
+  {
+    "name": "Scroll-Driven Story",
+    "path": "concepts/02-scroll-story.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "Progress bar · pinned parallax · scroll-filled text · counters"
+  },
+  {
+    "name": "Micro-Interactions",
+    "path": "concepts/03-micro-interactions.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "Six tactile feedback stations"
+  },
+  {
+    "name": "Bento Choreography",
+    "path": "concepts/04-bento-grid.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "Spotlight borders · per-tile ambient motion"
+  },
+  {
+    "name": "Velocity Marquee",
+    "path": "concepts/05-marquee.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "Tickers that speed, skew and reverse with scroll"
+  },
+  {
+    "name": "Cursor & Spotlight",
+    "path": "concepts/06-cursor-spotlight.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "Cursor with mass · flashlight over a night scene"
+  },
+  {
+    "name": "Dimensional Cards",
+    "path": "concepts/07-tilt-cards.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "3D tilt · depth layers · holographic foil"
+  },
+  {
+    "name": "Aurora Ambient Hero",
+    "path": "concepts/08-aurora-hero.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "Canvas aurora curtains · film grain · conic-ring CTA"
+  },
+  {
+    "name": "Shared-Element Morph",
+    "path": "concepts/09-shared-element.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "FLIP: card travels into its detail view"
+  },
+  {
+    "name": "Attention Cues",
+    "path": "concepts/10-attention-cues.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "The salience ladder, with a feed that keeps the record"
+  },
+  {
+    "name": "Horizontal Gallery",
+    "path": "concepts/11-horizontal-gallery.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "Vertical scroll drives sideways rooms"
+  },
+  {
+    "name": "Redaction Reveal",
+    "path": "concepts/12-text-decode.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "A file un-redacts itself · DECLASSIFIED stamp"
+  },
+  {
+    "name": "Change Blindness Lab",
+    "path": "concepts/13-change-blindness.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "Spot the change: cut vs. motion"
+  },
+  {
+    "name": "Spring & Easing Lab",
+    "path": "concepts/14-easing-lab.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "Easing race · native linear() spring designer"
+  },
+  {
+    "name": "Intro Sequence",
+    "path": "concepts/15-intro-sequence.html",
+    "group": "Concepts",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "Counter → curtain wipe → hero arrival"
+  }
+]
