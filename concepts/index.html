@@ -37,6 +37,7 @@
   .top .kicker {
     font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.24em;
     text-transform: uppercase; color: var(--accent-2);
+    max-width: none; /* exempt from the paragraph measure — never strand a word */
     opacity: 0; animation: rise 0.7s var(--ease-out) 0.05s forwards;
   }
   .top h1 {
@@ -81,7 +82,8 @@
   .card h2 { margin: 0 0 3px; font-size: 17.5px; letter-spacing: -0.01em; padding-right: 30px; }
   .card .fam {
     font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase;
-    color: var(--c); margin-bottom: 7px;
+    color: color-mix(in srgb, var(--c) 72%, #ffffff); /* lightened: small text needs 4.5:1 */
+    margin-bottom: 7px;
   }
   .card p { margin: 0; font-size: 13px; color: var(--ink-dim); line-height: 1.5; }
   .card .go {
@@ -179,7 +181,7 @@
   <p>Interactive concepts exploring how motion catches — and keeps — attention: kinetic type,
   scroll-driven narrative, tactile micro-interactions, cursor-led reveals, and the choreography of
   notification. Every demo is a single self-contained HTML file with zero dependencies, and every
-  one honors <a href="#" onclick="return false">prefers-reduced-motion</a>. Open the “About” panel
+  one honors <code style="font-family:var(--font-mono);font-size:0.9em;color:var(--accent-2)">prefers-reduced-motion</code>. Open the “About” panel
   inside any demo for the mechanism and the exact timing values.</p>
 </header>
 
@@ -245,9 +247,19 @@
     grid.appendChild(a);
   });
 
-  // staggered entrance
+  // staggered entrance; once landed, drop the per-card delay so hover responds instantly
   const io = new IntersectionObserver(entries => {
-    for (const e of entries) if (e.isIntersecting) { e.target.classList.add('entered'); io.unobserve(e.target); }
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      const card = e.target;
+      card.classList.add('entered');
+      io.unobserve(card);
+      card.addEventListener('transitionend', function clear(ev) {
+        if (ev.propertyName !== 'opacity') return;
+        card.style.setProperty('--d', '0s');
+        card.removeEventListener('transitionend', clear);
+      });
+    }
   }, { threshold: 0.1 });
   document.querySelectorAll('.card').forEach(c => io.observe(c));
 </script>

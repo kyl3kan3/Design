@@ -49,6 +49,10 @@
     transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
   }
   .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  /* scrims + touch targets: keep fixed chrome legible over scrolled content */
+  .chrome { padding-bottom: 30px; background: linear-gradient(to bottom, rgba(8, 8, 13, 0.92), rgba(8, 8, 13, 0.6) 60%, rgba(8, 8, 13, 0)); }
+  .chrome-back { padding: 12px 10px; margin: -12px -10px; }
+  .chrome-info { padding: 10px 16px; }
   .about {
     position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
     background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
@@ -58,9 +62,12 @@
   .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
   .about strong { color: var(--ink); font-weight: 600; }
   .hint {
-    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    position: fixed; bottom: 16px; left: 50%; translate: -50% 0; z-index: 50;
     font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none;
+    background: rgba(8, 8, 13, 0.78); backdrop-filter: blur(8px);
+    border: 1px solid rgba(244, 243, 247, 0.07); border-radius: 999px;
+    padding: 9px 18px; text-align: center; max-width: min(92vw, 560px);
   }
 
   /* ---------- layout ---------- */
@@ -87,7 +94,7 @@
   .mode button.sel.cut-btn { background: var(--hot); }
   .mode button.sel.anim-btn { background: var(--accent-2); }
   .go-btn {
-    background: var(--accent); color: #fff; border: none; border-radius: 999px;
+    background: #6f4dff; color: #fff; border: none; border-radius: 999px; /* darkened for 4.5:1 on white label */
     font: 600 14px var(--font-sans); padding: 13px 26px; cursor: pointer;
     transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-2) ease;
   }
@@ -246,6 +253,7 @@
   // ----- game state -----
   let mode = 'cut';
   let target = -1;      // index of the changed tile, -1 = no round armed
+  let armedMode = null; // mode latched when the round was armed — scoring uses THIS
   let scores = { cut: [0, 0], anim: [0, 0] };
   const verdict = document.getElementById('verdict');
   const mask = document.getElementById('mask');
@@ -258,9 +266,21 @@
     animBtn.classList.toggle('sel', m === 'anim');
     cutBtn.setAttribute('aria-checked', String(m === 'cut'));
     animBtn.setAttribute('aria-checked', String(m === 'anim'));
+    cutBtn.tabIndex = m === 'cut' ? 0 : -1;
+    animBtn.tabIndex = m === 'anim' ? 0 : -1;
   }
   cutBtn.addEventListener('click', () => setMode('cut'));
   animBtn.addEventListener('click', () => setMode('anim'));
+  // radio-group keyboard contract: arrows move selection, roving tabindex
+  [cutBtn, animBtn].forEach(btn => btn.addEventListener('keydown', e => {
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+      e.preventDefault();
+      const next = mode === 'cut' ? 'anim' : 'cut';
+      setMode(next);
+      (next === 'cut' ? cutBtn : animBtn).focus();
+    }
+  }));
+  setMode('cut');
 
   function applyChange(i) {
     const m = METRICS[i];
@@ -277,6 +297,7 @@
   document.getElementById('goBtn').addEventListener('click', () => {
     if (target >= 0) return; // round already armed
     target = Math.floor(Math.random() * METRICS.length);
+    armedMode = mode; // latch: switching modes mid-round must not misattribute the score
     verdict.className = 'verdict';
     verdict.textContent = '…something just changed. Click the tile.';
 
@@ -317,7 +338,7 @@
 
   function guess(i, tile) {
     if (target < 0) { verdict.className = 'verdict'; verdict.textContent = 'Arm a round first — press “Change something”.'; return; }
-    const key = mode === 'cut' ? 'cut' : 'anim';
+    const key = armedMode === 'cut' ? 'cut' : 'anim';
     scores[key][1]++;
     const hit = i === target;
     if (hit) scores[key][0]++;
@@ -326,9 +347,10 @@
     verdict.className = 'verdict ' + (hit ? 'good' : 'bad');
     const name = METRICS[target].k;
     verdict.textContent = hit
-      ? `Correct — “${name}” changed. ${mode === 'cut' ? 'Impressive; most people miss these.' : 'The animation did half the work for you.'}`
-      : `Miss — it was “${name}”. ${mode === 'cut' ? 'That’s change blindness: the flicker ate the transient.' : 'Even with motion, timing matters.'}`;
+      ? `Correct — “${name}” changed. ${key === 'cut' ? 'Impressive; most people miss these.' : 'The animation did half the work for you.'}`
+      : `Miss — it was “${name}”. ${key === 'cut' ? 'That’s change blindness: the flicker ate the transient.' : 'Even with motion, timing matters.'}`;
     target = -1;
+    armedMode = null;
   }
 </script>
 </body>

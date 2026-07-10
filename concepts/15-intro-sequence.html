@@ -50,6 +50,10 @@
     transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
   }
   .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  /* scrims + touch targets: keep fixed chrome legible over scrolled content */
+  .chrome { padding-bottom: 30px; background: linear-gradient(to bottom, rgba(8, 8, 13, 0.92), rgba(8, 8, 13, 0.6) 60%, rgba(8, 8, 13, 0)); }
+  .chrome-back { padding: 12px 10px; margin: -12px -10px; }
+  .chrome-info { padding: 10px 16px; }
   .about {
     position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
     background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
@@ -59,9 +63,12 @@
   .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
   .about strong { color: var(--ink); font-weight: 600; }
   .hint {
-    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    position: fixed; bottom: 16px; left: 50%; translate: -50% 0; z-index: 50;
     font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none;
+    background: rgba(8, 8, 13, 0.78); backdrop-filter: blur(8px);
+    border: 1px solid rgba(244, 243, 247, 0.07); border-radius: 999px;
+    padding: 9px 18px; text-align: center; max-width: min(92vw, 560px);
   }
 
   /* ---------- preloader ---------- */
@@ -136,9 +143,9 @@
   /* staged entrance classes (added by JS after curtains) */
   .kicker, .hero .foot { opacity: 0; transform: translateY(16px); }
   body.arrived .hero h1 .in { animation: line-in 0.85s var(--ease-out) forwards; }
-  body.arrived .hero h1 .ln:nth-child(1) .in { animation-delay: 0.10s; }
-  body.arrived .hero h1 .ln:nth-child(2) .in { animation-delay: 0.22s; }
-  body.arrived .hero h1 .ln:nth-child(3) .in { animation-delay: 0.34s; }
+  body.arrived .hero h1 .ln:nth-child(1) .in { animation-delay: 0s; }    /* first line rises 100ms into the wipe */
+  body.arrived .hero h1 .ln:nth-child(2) .in { animation-delay: 0.12s; }
+  body.arrived .hero h1 .ln:nth-child(3) .in { animation-delay: 0.24s; }
   @keyframes line-in { to { transform: translateY(0); } }
   body.arrived .kicker { animation: soft-in 0.6s var(--ease-out) 0.55s forwards; }
   body.arrived .hero .foot { animation: soft-in 0.6s var(--ease-out) 0.7s forwards; }
@@ -210,7 +217,10 @@
   const countNum = document.getElementById('countNum');
   const barFill = document.getElementById('barFill');
 
+  let runToken = 0; // replay cancels any in-flight run: stale callbacks check the token and bail
+
   function runIntro() {
+    const id = ++runToken;
     if (reduceMotion.matches) {
       loader.classList.add('gone');
       curtains.classList.add('gone');
@@ -227,6 +237,7 @@
     // counter with uneven pacing: fast → stall → sprint
     const t0 = performance.now(), DUR = 2100;
     (function tick(t) {
+      if (id !== runToken) return; // superseded by a newer run
       const p = Math.min((t - t0) / DUR, 1);
       // piecewise pacing curve
       let v;
@@ -239,11 +250,12 @@
       if (p < 1) { requestAnimationFrame(tick); return; }
       // act 2: curtains
       setTimeout(() => {
+        if (id !== runToken) return;
         loader.classList.add('gone');
         curtains.classList.add('open');
         // act 3: hero begins during the wipe
-        setTimeout(() => document.body.classList.add('arrived'), 100);
-        setTimeout(() => curtains.classList.add('gone'), 1300);
+        setTimeout(() => { if (id === runToken) document.body.classList.add('arrived'); }, 100);
+        setTimeout(() => { if (id === runToken) curtains.classList.add('gone'); }, 1300);
       }, 180); // beat of silence at 100
     })(t0);
   }

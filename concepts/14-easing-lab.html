@@ -49,6 +49,10 @@
     transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
   }
   .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  /* scrims + touch targets: keep fixed chrome legible over scrolled content */
+  .chrome { padding-bottom: 30px; background: linear-gradient(to bottom, rgba(8, 8, 13, 0.92), rgba(8, 8, 13, 0.6) 60%, rgba(8, 8, 13, 0)); }
+  .chrome-back { padding: 12px 10px; margin: -12px -10px; }
+  .chrome-info { padding: 10px 16px; }
   .about {
     position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
     background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
@@ -58,9 +62,12 @@
   .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
   .about strong { color: var(--ink); font-weight: 600; }
   .hint {
-    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    position: fixed; bottom: 16px; left: 50%; translate: -50% 0; z-index: 50;
     font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none;
+    background: rgba(8, 8, 13, 0.78); backdrop-filter: blur(8px);
+    border: 1px solid rgba(244, 243, 247, 0.07); border-radius: 999px;
+    padding: 9px 18px; text-align: center; max-width: min(92vw, 560px);
   }
 
   /* ---------- layout ---------- */
@@ -101,7 +108,7 @@
 
   .race-controls { display: flex; gap: 12px; align-items: center; margin-top: 16px; flex-wrap: wrap; }
   .btn {
-    background: var(--accent); color: #fff; border: none; border-radius: 999px;
+    background: #6f4dff; color: #fff; border: none; border-radius: 999px; /* darkened for 4.5:1 on white label */
     font: 600 14px var(--font-sans); padding: 12px 26px; cursor: pointer;
     transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-2) ease;
   }
@@ -140,11 +147,12 @@
   .curve-big { width: 100%; height: 170px; background: rgba(8,8,13,0.6); border-radius: 12px; }
   .curve-big path { fill: none; stroke: var(--accent-2); stroke-width: 2; }
   .curve-big line { stroke: var(--line); stroke-width: 1; }
-  .css-out {
-    margin-top: 14px; position: relative;
-    background: #0b0b13; border: 1px solid var(--line); border-radius: 10px;
-    padding: 14px 14px 14px 16px; font-family: var(--font-mono); font-size: 11px;
-    color: var(--accent-2); line-height: 1.6; word-break: break-all; max-height: 130px; overflow: auto;
+  .css-out { margin-top: 14px; position: relative; background: #0b0b13; border: 1px solid var(--line); border-radius: 10px; }
+  .css-scroll {
+    /* the button lives OUTSIDE this scroller so it can't scroll away or cover text */
+    padding: 14px 76px 14px 16px; font-family: var(--font-mono); font-size: 11px;
+    color: var(--accent-2); line-height: 1.6; word-break: break-all;
+    max-height: calc(7 * 1.6em + 28px); overflow: auto;
   }
   .copy-btn {
     position: absolute; top: 8px; right: 8px;
@@ -174,7 +182,7 @@
   <h2>Easing race + native spring designer</h2>
   <p class="about-what">Five identical moves, five different easing curves, raced side by side — then a designer that samples a real damped-spring simulation into CSS's native <code>linear()</code> function, with copyable output.</p>
   <p class="about-why"><strong>Why it matters:</strong> easing is where users perceive quality without knowing why. Deceleration into place reads as physical; a slight overshoot (≤15%) reads as alive; pure linear motion reads as robotic. Since <code>linear()</code> shipped in all engines, real spring physics needs zero JavaScript at runtime.</p>
-  <p class="about-craft"><strong>Craft notes:</strong> the race runs one duration (adjustable 600–2000ms) so only the curve differs; curves are plotted from the same functions that drive the motion. The spring designer solves the closed-form underdamped oscillator x(t)=1−e^(−ζω₀t)(cos ω_d t + (ζω₀/ω_d) sin ω_d t), samples 48 points, and emits <code>linear()</code>. Damping ratio 0.7–1.0 feels premium; below 0.5 becomes cartoon.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> the race runs one duration (adjustable 600–2000ms) so only the curve differs; plots are evaluated from the exact bézier control points (bisection solve) and spring function that drive the motion. The spring designer solves the closed-form underdamped oscillator x(t)=1−e^(−ζω₀t)(cos ω_d t + (ζω₀/ω_d) sin ω_d t), samples 49 stops (48 intervals), and emits <code>linear()</code>. Damping ratio 0.7–1.0 feels premium; below 0.5 becomes cartoon.</p>
   <p class="about-rm"><strong>Reduced motion:</strong> runs complete instantly (curve plots — the educational content — carry the comparison), and nothing animates without an explicit button press either way.</p>
 </aside>
 
@@ -221,11 +229,11 @@
   <h2 class="sec">Spring designer — physics in, CSS out</h2>
   <div class="designer">
     <div class="d-controls">
-      <label>Damping ratio ζ — <output id="zetaOut">0.60</output> <span style="opacity:.6">(1.0 = no bounce)</span></label>
+      <label for="zeta">Damping ratio ζ — <output id="zetaOut">0.60</output> <span style="opacity:.6">(1.0 = no bounce)</span></label>
       <input type="range" id="zeta" min="0.30" max="1.00" step="0.05" value="0.60">
-      <label>Response ω₀ — <output id="omegaOut">14 rad/s</output></label>
+      <label for="omega">Response ω₀ — <output id="omegaOut">14 rad/s</output></label>
       <input type="range" id="omega" min="6" max="26" step="1" value="14">
-      <label>Duration — <output id="sdurOut">900ms</output></label>
+      <label for="sdur">Duration — <output id="sdurOut">900ms</output></label>
       <input type="range" id="sdur" min="400" max="1600" step="50" value="900">
       <div class="spring-stage" id="springStage">
         <div class="spring-box" id="springBox"></div>
@@ -236,8 +244,8 @@
     </div>
     <div class="d-out">
       <h3>Your curve</h3>
-      <svg class="curve-big" id="bigCurve" viewBox="0 0 400 170" preserveAspectRatio="none" aria-label="Spring curve plot"></svg>
-      <div class="css-out" id="cssOut"><button class="copy-btn" id="copyBtn">Copy</button><span id="cssText"></span></div>
+      <svg class="curve-big" id="bigCurve" viewBox="0 0 400 170" preserveAspectRatio="none" role="img" aria-label="Spring curve plot"></svg>
+      <div class="css-out" id="cssOut"><button class="copy-btn" id="copyBtn">Copy</button><div class="css-scroll"><span id="cssText"></span></div></div>
     </div>
   </div>
 </main>
@@ -255,12 +263,24 @@
   });
 
   // ----- curve math -----
+  // exact cubic-bezier evaluation (solve x(u)=t by bisection, return y(u)) so the
+  // plots are computed from the SAME control points that drive the CSS animation
+  function cubicBezier(x1, y1, x2, y2) {
+    const X = u => 3 * (1 - u) * (1 - u) * u * x1 + 3 * (1 - u) * u * u * x2 + u ** 3;
+    const Y = u => 3 * (1 - u) * (1 - u) * u * y1 + 3 * (1 - u) * u * u * y2 + u ** 3;
+    return t => {
+      if (t <= 0) return 0;
+      if (t >= 1) return 1;
+      let lo = 0, hi = 1, u = t;
+      for (let i = 0; i < 30; i++) { u = (lo + hi) / 2; (X(u) < t) ? lo = u : hi = u; }
+      return Y(u);
+    };
+  }
   const FNS = {
     linear: t => t,
-    expo:   t => 1 - Math.pow(1 - t, 4.2),                    // close visual match to (.16,1,.3,1)
-    emph:   t => 1 - Math.pow(1 - t, 3.1),                    // approximation for the plot
-    back:   t => { const c1 = 1.70158 * 1.28, c3 = c1 + 1;    // matches (.34,1.56,.64,1) family
-                   return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2); },
+    expo:   cubicBezier(0.16, 1, 0.3, 1),
+    emph:   cubicBezier(0.05, 0.7, 0.1, 1),
+    back:   cubicBezier(0.34, 1.56, 0.64, 1),
   };
   function springFn(zeta, omega0, durSec) {
     if (zeta >= 0.999) {
@@ -346,6 +366,7 @@
     document.getElementById('sdurOut').textContent = sdur.value + 'ms';
     const fn = springFn(z, w, d);
     plot(bigCurve, fn, 400, 170, 8);
+    bigCurve.setAttribute('aria-label', `Spring curve: damping ratio ${z.toFixed(2)}, response ${w} radians per second, ${sdur.value} milliseconds`);
     springOut = sampleLinear(fn);
     cssText.textContent = `transition: transform ${sdur.value}ms ${springOut};`;
     springBox.style.setProperty('--s-dur', sdur.value + 'ms');

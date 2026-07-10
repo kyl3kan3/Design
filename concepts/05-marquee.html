@@ -52,6 +52,10 @@
     transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
   }
   .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  /* scrims + touch targets: keep fixed chrome legible over scrolled content */
+  .chrome { padding-bottom: 30px; background: linear-gradient(to bottom, rgba(8, 8, 13, 0.92), rgba(8, 8, 13, 0.6) 60%, rgba(8, 8, 13, 0)); }
+  .chrome-back { padding: 12px 10px; margin: -12px -10px; }
+  .chrome-info { padding: 10px 16px; }
   .about {
     position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
     background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
@@ -61,9 +65,12 @@
   .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
   .about strong { color: var(--ink); font-weight: 600; }
   .hint {
-    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    position: fixed; bottom: 16px; left: 50%; translate: -50% 0; z-index: 50;
     font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none;
+    background: rgba(8, 8, 13, 0.78); backdrop-filter: blur(8px);
+    border: 1px solid rgba(244, 243, 247, 0.07); border-radius: 999px;
+    padding: 9px 18px; text-align: center; max-width: min(92vw, 560px);
   }
 
   /* ---------- intro ---------- */
@@ -105,7 +112,7 @@
   /* ---------- outro ---------- */
   .outro { text-align: center; padding: 4vh 20px 20vh; }
   .outro .cta {
-    display: inline-block; background: var(--hot); color: #fff; text-decoration: none;
+    display: inline-block; background: var(--hot); color: #0a0a10; text-decoration: none; /* dark label: 6:1 on the hot fill */
     font: 700 16px/1 var(--font-sans); letter-spacing: 0.02em;
     padding: 18px 40px; border-radius: 999px;
     transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) ease;
@@ -118,8 +125,10 @@
   @media (prefers-reduced-motion: reduce) {
     .band { overflow-x: auto; }
     .band.tilt-a, .band.tilt-b { transform: none; }
+    .band:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
     .outro .cta { transition: none; }
     .outro .cta:hover { transform: none; }
+    .hint { display: none; } /* the velocity engine is off — nothing to "let go" of */
   }
 </style>
 </head>
@@ -134,7 +143,7 @@
   <h2>Velocity-reactive infinite marquee</h2>
   <p class="about-what">Three infinite ticker bands drifting at different speeds and directions. Scrolling injects your velocity: bands accelerate, skew like they're under wind load, and follow your scroll direction, then relax back to their drift.</p>
   <p class="about-why"><strong>Why it catches attention:</strong> continuous horizontal drift registers in peripheral vision without demanding focus — until it responds to <em>you</em>. Coupling the bands to scroll velocity turns passive ambience into a physics toy; the skew reads as momentum, which the brain finds irresistibly causal.</p>
-  <p class="about-craft"><strong>Craft notes:</strong> JS rAF loop advances each track by base drift (0.5–0.9 px/frame) + |scroll velocity| × 0.35, wrapped seamlessly at half-width; skewX = velocity × 0.05 clamped to ±12°, decayed with lerp 0.08/frame. Alternating filled and 1.5px-stroked outline words add depth on one type size.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> JS rAF loop advances each track by base drift (0.5–0.9 px/frame) + |scroll velocity| × 0.35, wrapped seamlessly at one content-unit width (the row is duplicated past 2× the viewport); skewX = velocity × 0.05 clamped to ±12°, decayed with lerp 0.08/frame. Alternating filled and 1.5px-stroked outline words add depth on one type size.</p>
   <p class="about-rm"><strong>Reduced motion:</strong> bands stop drifting entirely and become ordinary horizontally scrollable rows; the tilt is removed and no skew is applied.</p>
 </aside>
 
@@ -183,6 +192,15 @@
 
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
+  if (reduceMotion.matches) {
+    // static mode: the bands are plain horizontal scrollers — make them keyboard-scrollable
+    document.querySelectorAll('.band').forEach((band, i) => {
+      band.tabIndex = 0;
+      band.setAttribute('role', 'region');
+      band.setAttribute('aria-label', `Festival ticker ${i + 1}, scrolls horizontally`);
+    });
+  }
+
   // ----- velocity marquee engine -----
   if (!reduceMotion.matches) {
     const bands = [...document.querySelectorAll('.band')].map(band => {
@@ -190,7 +208,11 @@
       const chunk = track.querySelector('.chunk');
       // duplicate content until the track is at least 2× the viewport, +1 for seamless wrap
       const needed = Math.ceil((innerWidth * 2) / chunk.offsetWidth) + 1;
-      for (let i = 0; i < needed; i++) track.appendChild(chunk.cloneNode(true));
+      for (let i = 0; i < needed; i++) {
+        const clone = chunk.cloneNode(true);
+        clone.setAttribute('aria-hidden', 'true'); // only the original chunk reads once
+        track.appendChild(clone);
+      }
       return {
         el: track,
         band,
@@ -209,6 +231,7 @@
       lastY = scrollY;
       vel += (dy - vel) * 0.3;
       vel *= 0.92;
+      if (Math.abs(vel) < 0.05) vel = 0; // settle: bands return to their own drift direction
 
       const boost = Math.min(Math.abs(vel) * 0.35, 38);
       const dirBoost = vel === 0 ? 1 : Math.sign(vel) || 1;

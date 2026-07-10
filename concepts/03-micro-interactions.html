@@ -52,6 +52,10 @@
     transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
   }
   .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  /* scrims + touch targets: keep fixed chrome legible over scrolled content */
+  .chrome { padding-bottom: 30px; background: linear-gradient(to bottom, rgba(8, 8, 13, 0.92), rgba(8, 8, 13, 0.6) 60%, rgba(8, 8, 13, 0)); }
+  .chrome-back { padding: 12px 10px; margin: -12px -10px; }
+  .chrome-info { padding: 10px 16px; }
   .about {
     position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
     background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
@@ -61,9 +65,12 @@
   .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
   .about strong { color: var(--ink); font-weight: 600; }
   .hint {
-    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    position: fixed; bottom: 16px; left: 50%; translate: -50% 0; z-index: 50;
     font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none;
+    background: rgba(8, 8, 13, 0.78); backdrop-filter: blur(8px);
+    border: 1px solid rgba(244, 243, 247, 0.07); border-radius: 999px;
+    padding: 9px 18px; text-align: center; max-width: min(92vw, 560px);
   }
 
   /* ---------- layout ---------- */
@@ -84,14 +91,15 @@
     font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em;
     text-transform: uppercase; color: var(--ink-dim); margin-bottom: 4px;
   }
-  .station-note { font-size: 12.5px; color: var(--ink-dim); opacity: 0.75; margin-top: auto; padding-top: 16px; }
+  .station-note { font-size: 12.5px; color: var(--ink-dim); margin-top: auto; padding-top: 16px; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .station-body { flex: 1; display: grid; place-items: center; padding: 18px 0; }
 
   /* ---------- 1 · magnetic button ---------- */
   .magnet-zone { position: relative; display: grid; place-items: center; width: 100%; height: 130px; }
   .btn-magnet {
     position: relative; overflow: hidden;
-    background: var(--accent); border: none; color: #fff; cursor: pointer;
+    background: #6f4dff; border: none; color: #fff; cursor: pointer; /* darkened for 4.5:1 on white label */
     font: 600 15px/1 var(--font-sans); letter-spacing: 0.01em;
     padding: 16px 34px; border-radius: 999px;
     will-change: transform;
@@ -294,6 +302,7 @@
           <span class="spinner" aria-hidden="true"></span>
           <svg class="check" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
         </button>
+        <span class="sr" role="status" id="morphStatus"></span>
       </div>
       <p class="station-note">Button → spinner → check. One element, three states, no jump cuts</p>
     </section>
@@ -352,9 +361,15 @@
       y += (ty - y) * 0.12;
       btn.style.transform = `translate(${x}px, ${y}px)`;
       inner.style.transform = `translate(${x * 0.35}px, ${y * 0.35}px)`; // label leads slightly
-      if (Math.abs(tx - x) > 0.1 || Math.abs(ty - y) > 0.1 || tx || ty) {
+      if (Math.abs(tx - x) > 0.1 || Math.abs(ty - y) > 0.1) {
         requestAnimationFrame(loop);
-      } else { running = false; btn.style.transform = ''; inner.style.transform = ''; }
+      } else {
+        // converged — snap to the exact target and idle; pointermove re-kicks the loop
+        running = false;
+        x = tx; y = ty;
+        btn.style.transform = tx || ty ? `translate(${tx}px, ${ty}px)` : '';
+        inner.style.transform = tx || ty ? `translate(${tx * 0.35}px, ${ty * 0.35}px)` : '';
+      }
     }
     function start() { if (!running) { running = true; requestAnimationFrame(loop); } }
 
@@ -404,11 +419,18 @@
   // ----- 4 · morphing submit -----
   {
     const btn = document.getElementById('morphBtn');
+    const status = document.getElementById('morphStatus');
     btn.addEventListener('click', () => {
       if (btn.classList.contains('working') || btn.classList.contains('done')) return;
       btn.classList.add('working');
-      setTimeout(() => { btn.classList.remove('working'); btn.classList.add('done'); }, 1600);
-      setTimeout(() => { btn.classList.remove('done'); }, 4200); // reset for replay
+      btn.setAttribute('aria-busy', 'true');
+      status.textContent = 'Placing order…';
+      setTimeout(() => {
+        btn.classList.remove('working'); btn.classList.add('done');
+        btn.setAttribute('aria-busy', 'false');
+        status.textContent = 'Order placed.';
+      }, 1600);
+      setTimeout(() => { btn.classList.remove('done'); status.textContent = ''; }, 4200); // reset for replay
     });
   }
 
@@ -438,24 +460,38 @@
     input.addEventListener('input', () => { input.classList.remove('error'); msg.textContent = ''; });
   }
 
-  // ----- 6 · star cascade -----
+  // ----- 6 · star cascade (radio pattern: roving tabindex + arrow keys) -----
   {
     const stars = [...document.querySelectorAll('#stars .star')];
+    let pending = []; // cascade timeouts from the previous pick
+
+    function select(i) {
+      pending.forEach(clearTimeout); // a new pick cancels any in-flight cascade
+      pending = [];
+      stars.forEach((s, j) => {
+        s.classList.remove('pop');
+        s.setAttribute('aria-checked', String(j === i));
+        s.tabIndex = j === i ? 0 : -1;
+        if (j <= i) {
+          const delay = reduceMotion.matches ? 0 : j * 60;
+          pending.push(setTimeout(() => {
+            s.classList.add('lit');
+            if (!reduceMotion.matches) { void s.offsetWidth; s.classList.add('pop'); }
+          }, delay));
+        } else {
+          s.classList.remove('lit');
+        }
+      });
+    }
+
     stars.forEach((star, i) => {
-      star.addEventListener('click', () => {
-        stars.forEach((s, j) => {
-          s.classList.remove('pop');
-          s.setAttribute('aria-checked', String(j === i));
-          if (j <= i) {
-            const delay = reduceMotion.matches ? 0 : j * 60;
-            setTimeout(() => {
-              s.classList.add('lit');
-              if (!reduceMotion.matches) { void s.offsetWidth; s.classList.add('pop'); }
-            }, delay);
-          } else {
-            s.classList.remove('lit');
-          }
-        });
+      star.tabIndex = i === 0 ? 0 : -1;
+      star.addEventListener('click', () => select(i));
+      star.addEventListener('keydown', e => {
+        let next = null;
+        if (e.key === 'ArrowRight' || e.key === 'ArrowUp') next = Math.min(i + 1, stars.length - 1);
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') next = Math.max(i - 1, 0);
+        if (next !== null) { e.preventDefault(); stars[next].focus(); select(next); }
       });
     });
   }

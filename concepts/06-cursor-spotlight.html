@@ -54,6 +54,10 @@
     transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
   }
   .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  /* scrims + touch targets: keep fixed chrome legible over scrolled content */
+  .chrome { padding-bottom: 30px; background: linear-gradient(to bottom, rgba(8, 8, 13, 0.92), rgba(8, 8, 13, 0.6) 60%, rgba(8, 8, 13, 0)); }
+  .chrome-back { padding: 12px 10px; margin: -12px -10px; }
+  .chrome-info { padding: 10px 16px; }
   .about {
     position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
     background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
@@ -63,9 +67,12 @@
   .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
   .about strong { color: var(--ink); font-weight: 600; }
   .hint {
-    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    position: fixed; bottom: 16px; left: 50%; translate: -50% 0; z-index: 50;
     font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none;
+    background: rgba(8, 8, 13, 0.78); backdrop-filter: blur(8px);
+    border: 1px solid rgba(244, 243, 247, 0.07); border-radius: 999px;
+    padding: 9px 18px; text-align: center; max-width: min(92vw, 560px);
   }
 
   /* ---------- custom cursor ---------- */
@@ -118,6 +125,7 @@
 
   /* ---------- spotlight reveal ---------- */
   .reveal-zone { position: relative; min-height: 92vh; border-top: 1px solid var(--line); overflow: hidden; }
+  .reveal-zone:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
   .layer {
     position: absolute; inset: 0;
     display: flex; flex-direction: column; justify-content: center;
@@ -161,6 +169,10 @@
     .layer-lit { -webkit-mask-image: none; mask-image: none; }
     .layer-dull { display: none; }
     .work-item { transition: none; }
+    .hint { display: none; } /* there is no flashlight in this mode */
+  }
+  @media (pointer: coarse) {
+    .hint { display: none; } /* the cursor mechanic is disabled on touch */
   }
 </style>
 </head>
@@ -190,7 +202,7 @@
     Available for commissions, patient clients, and <a href="#" onclick="return false">unreasonable ideas</a>.</p>
   </section>
 
-  <section class="reveal-zone" id="revealZone" aria-label="Spotlight reveal">
+  <section class="reveal-zone" id="revealZone" aria-label="Spotlight reveal — focus or point to illuminate" tabindex="0">
     <div class="layer layer-dull" aria-hidden="true">
       <h2>Most portfolios show you everything at once.</h2>
       <p>Every image lit, every case study expanded, every award in the first viewport. Nothing left to want.</p>
@@ -250,15 +262,21 @@
     const lit = zone.querySelector('.layer-lit');
     let sx = 0.5, sy = 0.5, tsx = 0.5, tsy = 0.5, r = 0, tr = 0;
 
-    zone.addEventListener('pointerenter', () => { tr = 220; });
-    zone.addEventListener('pointerleave', () => { tr = 0; });
+    zone.addEventListener('pointerenter', () => { tr = 220; kick(); });
+    zone.addEventListener('pointerleave', () => { tr = 0; kick(); });
     zone.addEventListener('pointermove', e => {
       const rect = zone.getBoundingClientRect();
       tsx = (e.clientX - rect.left) / rect.width;
       tsy = (e.clientY - rect.top) / rect.height;
+      kick();
     }, { passive: true });
+    // keyboard users get the full reveal on focus — content is never mouse-only
+    zone.addEventListener('focus', () => { tsx = 0.5; tsy = 0.5; tr = 520; kick(); });
+    zone.addEventListener('blur', () => { tr = 0; kick(); });
 
-    (function frame() {
+    let raf = null;
+    function frame() {
+      raf = null;
       rx += (mx - rx) * 0.16;
       ry += (my - ry) * 0.16;
       dot.style.transform = `translate(${mx}px, ${my}px)`;
@@ -267,12 +285,21 @@
       sx += (tsx - sx) * 0.2;
       sy += (tsy - sy) * 0.2;
       r += (tr - r) * 0.1;
-      lit.style.setProperty('--sx', `${sx * 100}%`);
-      lit.style.setProperty('--sy', `${sy * 100}%`);
-      lit.style.setProperty('--r', `${r}px`);
+      if (r > 0.5 || tr > 0) { // don't invalidate the mask while the light is off
+        lit.style.setProperty('--sx', `${sx * 100}%`);
+        lit.style.setProperty('--sy', `${sy * 100}%`);
+        lit.style.setProperty('--r', `${r}px`);
+      }
 
-      requestAnimationFrame(frame);
-    })();
+      // idle out once everything has converged; input handlers re-kick
+      if (Math.abs(mx - rx) > 0.2 || Math.abs(my - ry) > 0.2 ||
+          Math.abs(tr - r) > 0.5 || Math.abs(tsx - sx) > 0.002 || Math.abs(tsy - sy) > 0.002) {
+        raf = requestAnimationFrame(frame);
+      }
+    }
+    function kick() { if (!raf) raf = requestAnimationFrame(frame); }
+    addEventListener('pointermove', kick, { passive: true });
+    kick();
   } else {
     // no fine pointer or reduced motion: show the lit layer outright
     document.body.classList.add('reveal-all');

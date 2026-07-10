@@ -49,6 +49,10 @@
     transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
   }
   .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  /* scrims + touch targets: keep fixed chrome legible over scrolled content */
+  .chrome { padding-bottom: 30px; background: linear-gradient(to bottom, rgba(8, 8, 13, 0.92), rgba(8, 8, 13, 0.6) 60%, rgba(8, 8, 13, 0)); }
+  .chrome-back { padding: 12px 10px; margin: -12px -10px; }
+  .chrome-info { padding: 10px 16px; }
   .about {
     position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
     background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
@@ -58,9 +62,12 @@
   .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
   .about strong { color: var(--ink); font-weight: 600; }
   .hint {
-    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    position: fixed; bottom: 16px; left: 50%; translate: -50% 0; z-index: 50;
     font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
-    text-transform: uppercase; color: var(--ink-dim); pointer-events: none; white-space: nowrap;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none;
+    background: rgba(8, 8, 13, 0.78); backdrop-filter: blur(8px);
+    border: 1px solid rgba(244, 243, 247, 0.07); border-radius: 999px;
+    padding: 9px 18px; text-align: center; max-width: min(92vw, 560px);
   }
 
   /* ---------- intro ---------- */
@@ -128,9 +135,11 @@
     .h-wrap { height: auto; }
     .h-sticky { position: static; height: auto; }
     .h-track { overflow-x: auto; width: auto; transform: none !important; }
+    .h-track:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
     .panel { height: 78vh; }
     .panel h2, .panel .swatch { transform: none !important; }
     .dots { display: none; }
+    .hint { display: none; } /* vertical scroll no longer drives the rooms */
   }
 </style>
 </head>
@@ -145,7 +154,7 @@
   <h2>Pinned horizontal scroll gallery</h2>
   <p class="about-what">A section pins itself to the viewport and converts your vertical scroll into horizontal travel through four exhibition rooms, each with its own internal parallax and a segmented progress indicator.</p>
   <p class="about-why"><strong>Why it catches attention:</strong> the axis flip is a violated expectation — the page suddenly moves the “wrong” way, which re-engages attention exactly when scrolling has become automatic. Because travel is still scroll-driven, users keep full control; it surprises without hijacking.</p>
-  <p class="about-craft"><strong>Craft notes:</strong> a 420vh wrapper + <code>position: sticky</code> viewport; track translateX maps wrapper progress with a 0.06 lerp so panels glide rather than track raw scroll; titles counter-translate 60px and glow orbs 140px for depth; progress dots fill per-panel. All motion is transform-only, on the compositor.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> a 420vh wrapper + <code>position: sticky</code> viewport; track translateX maps wrapper progress with a 0.06 lerp so panels glide rather than track raw scroll (snapping exact at both ends); titles lead the travel by up to ±60px and glow orbs by ±140px for foreground parallax; progress dots fill per-panel. All motion is transform-only, on the compositor.</p>
   <p class="about-rm"><strong>Reduced motion:</strong> the pin is removed entirely — the gallery becomes an ordinary horizontally scrollable strip with no scroll capture, no parallax.</p>
 </aside>
 
@@ -212,24 +221,36 @@
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
   // ----- pinned horizontal drive -----
-  if (!reduceMotion.matches) {
+  if (reduceMotion.matches) {
+    // static mode: the track is a plain horizontal scroller — keyboard-operable
+    const track = document.getElementById('hTrack');
+    track.tabIndex = 0;
+    track.setAttribute('role', 'region');
+    track.setAttribute('aria-label', 'Gallery rooms 1 to 4, scrolls horizontally');
+  } else {
     const wrap = document.getElementById('hWrap');
     const track = document.getElementById('hTrack');
     const dots = [...document.querySelectorAll('#dots i')];
     const parallaxEls = [...track.querySelectorAll('[data-px]')];
     const panels = [...track.querySelectorAll('.panel')];
-    let x = 0;
+    let x = 0, raf = null, inView = false;
 
-    (function frame() {
+    const io = new IntersectionObserver(([e]) => { inView = e.isIntersecting; if (inView) kick(); });
+    io.observe(wrap);
+
+    function frame() {
+      raf = null;
       const r = wrap.getBoundingClientRect();
       const total = r.height - innerHeight;
       const p = Math.min(Math.max(-r.top / total, 0), 1);
       const max = track.scrollWidth - innerWidth;
       const target = p * max;
-      x += (target - x) * 0.06;                       // glide, don't track raw
+      // glide inside the pin; snap exact at both ends so the resting layout never sits offset
+      if (p <= 0 || p >= 1) x = target;
+      else x += (target - x) * 0.06;
       track.style.transform = `translateX(${-x}px)`;
 
-      // internal parallax: elements counter-move by distance from viewport center
+      // internal parallax: elements lead the travel by distance from viewport center
       for (const el of parallaxEls) {
         const pr = el.closest('.panel').getBoundingClientRect();
         const center = (pr.left + pr.width / 2 - innerWidth / 2) / innerWidth; // -1..1
@@ -241,8 +262,13 @@
       dots.forEach((d, i) => d.style.setProperty('--fill',
         Math.min(Math.max(seg - i, 0), 1).toFixed(3)));
 
-      requestAnimationFrame(frame);
-    })();
+      // keep running only while visible and still gliding; scroll re-kicks otherwise
+      if (inView && Math.abs(target - x) > 0.1) raf = requestAnimationFrame(frame);
+    }
+    function kick() { if (!raf && inView) raf = requestAnimationFrame(frame); }
+    addEventListener('scroll', kick, { passive: true });
+    addEventListener('resize', kick);
+    kick();
   }
 </script>
 </body>

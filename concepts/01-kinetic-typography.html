@@ -57,6 +57,10 @@
     transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
   }
   .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  /* scrims + touch targets: keep fixed chrome legible over scrolled content */
+  .chrome { padding-bottom: 30px; background: linear-gradient(to bottom, rgba(8, 8, 13, 0.92), rgba(8, 8, 13, 0.6) 60%, rgba(8, 8, 13, 0)); }
+  .chrome-back { padding: 12px 10px; margin: -12px -10px; }
+  .chrome-info { padding: 10px 16px; }
   .about {
     position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
     background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
@@ -66,10 +70,12 @@
   .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
   .about strong { color: var(--ink); font-weight: 600; }
   .hint {
-    position: fixed; bottom: 18px; left: 50%; translate: -50% 0; z-index: 50;
+    position: fixed; bottom: 16px; left: 50%; translate: -50% 0; z-index: 50;
     font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
     text-transform: uppercase; color: var(--ink-dim); pointer-events: none;
-    white-space: nowrap;
+    background: rgba(8, 8, 13, 0.78); backdrop-filter: blur(8px);
+    border: 1px solid rgba(244, 243, 247, 0.07); border-radius: 999px;
+    padding: 9px 18px; text-align: center; max-width: min(92vw, 560px);
   }
 
   /* ---------- act 1 · masked line reveal ---------- */
@@ -164,6 +170,10 @@
     .headline .ch { transition: none; }
     .word-mask > span { transform: translateY(110%); }
     .word-mask > span.is-in { transform: none; }
+    .hint { display: none; } /* the advertised cursor interaction is disabled */
+  }
+  @media (pointer: coarse) {
+    .hint { display: none; } /* no cursor on touch — don't promise one */
   }
 </style>
 </head>
@@ -185,10 +195,10 @@
 <main class="stage">
   <section class="hero">
     <p class="eyebrow">Ossa Type Foundry · Specimen 07</p>
-    <h1 class="headline" id="headline">
-      <span class="line"><span class="line-inner" data-split>Letters</span></span>
-      <span class="line"><span class="line-inner"><span data-split>that</span> <span class="accent" data-split>refuse</span></span></span>
-      <span class="line"><span class="line-inner"><span class="outline" data-split>to sit</span> <span data-split>still</span></span></span>
+    <h1 class="headline" id="headline" aria-label="Letters that refuse to sit still.">
+      <span class="line" aria-hidden="true"><span class="line-inner" data-split>Letters</span></span>
+      <span class="line" aria-hidden="true"><span class="line-inner"><span data-split>that</span> <span class="accent" data-split>refuse</span></span></span>
+      <span class="line" aria-hidden="true"><span class="line-inner"><span class="outline" data-split>to sit</span> <span data-split>still</span></span></span>
     </h1>
     <p class="standfirst">
       Ossa Grotesk is drawn for motion first: <em>counterweights tuned for interpolation</em>,
@@ -234,22 +244,35 @@
     }
   });
 
+  // release the entrance masks once lines land, so displaced letters aren't clipped
+  document.querySelectorAll('.line-inner').forEach(el =>
+    el.addEventListener('animationend', () => { el.parentElement.style.overflow = 'visible'; }, { once: true }));
+
   // ----- cursor proximity: letters lean away, spring back -----
   if (!reduceMotion.matches) {
-    const headline = document.getElementById('headline');
-    const letters = [...headline.querySelectorAll('.ch')];
+    const letters = [...document.querySelectorAll('#headline .ch')];
     const RADIUS = 140;   // px influence radius around the cursor
     const PUSH = 26;      // max displacement in px
     let raf = null, mx = -9999, my = -9999;
+    let centers = [];     // untransformed page-space centers, cached after the entrance
+
+    function measure() {
+      centers = letters.map(el => {
+        const r = el.getBoundingClientRect();
+        return { x: r.left + r.width / 2 + scrollX, y: r.top + r.height / 2 + scrollY };
+      });
+    }
+    setTimeout(measure, 1500); // entrance has settled; transforms are identity
+    addEventListener('resize', () => { letters.forEach(el => el.style.transform = ''); measure(); });
 
     function apply() {
       raf = null;
-      for (const el of letters) {
-        const r = el.getBoundingClientRect();
-        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-        const dx = cx - mx, dy = cy - my;
+      if (!centers.length) return;
+      for (let i = 0; i < letters.length; i++) {
+        const el = letters[i];
+        const dx = centers[i].x - scrollX - mx, dy = centers[i].y - scrollY - my;
         const d = Math.hypot(dx, dy);
-        if (d < RADIUS) {
+        if (d >= 1 && d < RADIUS) {
           const f = (1 - d / RADIUS);
           const push = f * f * PUSH; // quadratic falloff feels springier
           el.style.transform =
@@ -259,41 +282,40 @@
         }
       }
     }
-    window.addEventListener('pointermove', e => {
+    addEventListener('pointermove', e => {
       mx = e.clientX; my = e.clientY;
       if (!raf) raf = requestAnimationFrame(apply);
     }, { passive: true });
-    window.addEventListener('pointerleave', () => {
+    // pointerleave doesn't bubble to window — listen on the root element
+    document.documentElement.addEventListener('pointerleave', () => {
       mx = my = -9999;
       if (!raf) raf = requestAnimationFrame(apply);
     });
   }
 
   // ----- word rotator: masked slide up-and-out / up-and-in -----
-  const mask = document.getElementById('wordMask');
-  const words = [...mask.children];
-  let idx = 0;
-  setInterval(() => {
-    const prev = words[idx];
-    idx = (idx + 1) % words.length;
-    const next = words[idx];
-    if (reduceMotion.matches) {
-      words.forEach(w => w.classList.remove('is-in', 'is-out'));
+  // Under reduced motion the loop never starts: the first word reads fine statically,
+  // and an endlessly self-updating headline is exactly what "reduce" asks to avoid.
+  if (!reduceMotion.matches) {
+    const words = [...document.getElementById('wordMask').children];
+    let idx = 0;
+    setInterval(() => {
+      const prev = words[idx];
+      idx = (idx + 1) % words.length;
+      const next = words[idx];
+      prev.classList.remove('is-in');
+      prev.classList.add('is-out');
+      next.classList.remove('is-out');
+      // restart from below the mask before sliding in
+      next.style.transition = 'none';
+      next.style.transform = 'translateY(110%)';
+      void next.offsetHeight; // flush so the reset takes effect
+      next.style.transition = '';
+      next.style.transform = '';
       next.classList.add('is-in');
-      return;
-    }
-    prev.classList.remove('is-in');
-    prev.classList.add('is-out');
-    next.classList.remove('is-out');
-    // restart from below the mask before sliding in
-    next.style.transition = 'none';
-    next.style.transform = 'translateY(110%)';
-    void next.offsetHeight; // flush so the reset takes effect
-    next.style.transition = '';
-    next.style.transform = '';
-    next.classList.add('is-in');
-    setTimeout(() => prev.classList.remove('is-out'), 550);
-  }, 2600);
+      setTimeout(() => prev.classList.remove('is-out'), 550);
+    }, 2600);
+  }
 </script>
 </body>
 </html>
