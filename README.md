@@ -4,18 +4,22 @@ Design research and working concepts exploring **patterns that catch attention t
 and animation** — what makes an interface earn a second look, and what makes that attention
 feel respected rather than hijacked.
 
-Two deliverables live here:
+Three deliverables live here:
 
 1. **Research** — [`research/attention-motion-design-research.md`](research/attention-motion-design-research.md):
    a synthesis of attention psychology, motion-design craft rules, 2025–26 trends, signature
    patterns from award-winning sites, the modern CSS/JS animation stack, and the accessibility
    and performance constraints that keep motion honest.
-2. **Concepts** — [`concepts/`](concepts/): nineteen interactive demos, one pattern family each — including a raw-WebGL2 Volume II (GPGPU particles, raymarching, fluid distortion).
+2. **Concepts** — [`concepts/`](concepts/): twenty interactive demos, one pattern family each — including a raw-WebGL2 Volume II (GPGPU particles, raymarching, fluid distortion) and two full applied landing pages.
    Every demo is a **single self-contained HTML file** — vanilla CSS/JS, system fonts, inline
    SVG, zero dependencies, zero network requests. Open any file in a browser, or start at
    [`concepts/index.html`](concepts/index.html).
+3. **Prompt library** — [`prompts/`](prompts/): a copy-paste generation prompt for every
+   component and concept, each distilled from (and linked to) its working reference
+   implementation. Paste the [design-system preamble](prompts/_design-system.md), then any
+   prompt, into your AI tool of choice to regenerate the pattern in your own stack and brand.
 
-## The nineteen concepts
+## The twenty concepts
 
 | # | Concept | Pattern family | What it demonstrates |
 |---|---------|----------------|----------------------|
@@ -38,13 +42,14 @@ Two deliverables live here:
 | 17 | [Particle Field](concepts/17-particle-field.html) | WebGL · GPGPU | 262,144 particles simulated in float textures: curl noise, shape morphs (sphere / LOOK / torus knot), pointer forces — raw WebGL2, no libraries |
 | 18 | [Liquid Raymarch](concepts/18-liquid-hero.html) | WebGL · SDF | Five metaballs sphere-traced per pixel with iq's studio rig: soft shadows, AO, fresnel, ACES — a lit surface with zero polygons |
 | 19 | [Flowmap Type](concepts/19-flowmap-type.html) | WebGL · Fluid | A self-advecting fluid field smears and chromatically splits poster typography along the cursor's wake |
+| 20 | [Applied: Signal SaaS](concepts/20-signal-landing.html) | The system, applied | A full SaaS landing at commercial polish density — glass nav, tilting product mockup, heatmap bento, rolling pricing, FAQ — every value documented |
 
 Each demo has an **About** panel (top-right) documenting the pattern, the perceptual mechanism
 behind it, the exact timing/easing values used, and its reduced-motion behavior.
 
 ## Shared craft rules
 
-All nineteen demos follow the same motion system (see the research doc for sources); the
+All twenty demos follow the same motion system (see the research doc for sources); the
 WebGL pieces additionally follow [`research/award-webgl-techniques.md`](research/award-webgl-techniques.md):
 
 - **Entrances decelerate, exits accelerate** — and exits run faster than entrances.

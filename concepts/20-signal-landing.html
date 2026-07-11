@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>20 — Applied: Signal SaaS · Attention Lab</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --glass: rgba(16, 16, 26, 0.55);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+    --dur-3: 600ms;
+  }
+  @property --ring {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+    overflow-x: clip;
+  }
+
+  /* ---------- lab chrome (review navigation) ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 90;
+    display: flex; align-items: center; gap: 16px; padding: 8px 20px 20px;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.08em;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(8, 8, 13, 0.9), rgba(8, 8, 13, 0));
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; padding: 10px 8px; margin: -10px -8px; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 8px 14px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 50px; right: 20px; z-index: 89; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- site nav (glass, gains a floor on scroll) ---------- */
+  .nav {
+    position: sticky; top: 34px; z-index: 60;
+    max-width: 1140px; margin: 44px auto 0;
+    display: flex; align-items: center; gap: 24px;
+    padding: 12px 18px; border-radius: 16px;
+    border: 1px solid transparent;
+    transition: background var(--dur-2) ease, border-color var(--dur-2) ease, backdrop-filter var(--dur-2) ease;
+  }
+  .nav.scrolled {
+    background: rgba(10, 10, 17, 0.72); backdrop-filter: blur(14px);
+    border-color: var(--line);
+  }
+  .logo { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 18px; letter-spacing: -0.02em; color: var(--ink); text-decoration: none; }
+  .logo .pip { position: relative; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-2); }
+  .logo .pip::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--accent-2); animation: ping 2.4s var(--ease-out) infinite; }
+  @keyframes ping { to { transform: scale(3); opacity: 0; } }
+  .nav-links { display: flex; gap: 4px; margin-left: auto; }
+  .nav-links a {
+    color: var(--ink-dim); text-decoration: none; font-size: 14px; padding: 9px 13px; border-radius: 9px;
+    transition: color var(--dur-1) ease, background var(--dur-1) ease;
+  }
+  .nav-links a:hover { color: var(--ink); background: rgba(244, 243, 247, 0.06); }
+  .nav-links a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .nav-cta {
+    background: #6f4dff; color: #fff; border: none; border-radius: 999px; cursor: pointer;
+    font: 600 13.5px var(--font-sans); padding: 11px 22px;
+    transition: transform var(--dur-1) var(--ease-out), box-shadow var(--dur-2) ease;
+  }
+  .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 26px rgba(124, 92, 255, 0.4); }
+  .nav-cta:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  @media (max-width: 780px) { .nav-links a { display: none; } }
+
+  /* ---------- orb field ---------- */
+  .orbs { position: absolute; inset: 0 0 auto; height: 130vh; overflow: hidden; z-index: -1; pointer-events: none; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(80px); }
+  .orb-1 { width: 54vw; height: 54vw; left: -14%; top: -22%; background: radial-gradient(circle, rgba(124, 92, 255, 0.34), transparent 66%); animation: drift1 26s ease-in-out infinite alternate; }
+  .orb-2 { width: 44vw; height: 44vw; right: -12%; top: -6%; background: radial-gradient(circle, rgba(41, 230, 167, 0.22), transparent 66%); animation: drift2 32s ease-in-out infinite alternate; }
+  .orb-3 { width: 30vw; height: 30vw; left: 34%; top: 42%; background: radial-gradient(circle, rgba(255, 77, 109, 0.13), transparent 66%); animation: drift1 38s ease-in-out infinite alternate-reverse; }
+  @keyframes drift1 { to { transform: translate(9vw, 7vh) scale(1.15); } }
+  @keyframes drift2 { to { transform: translate(-8vw, 9vh) scale(0.9); } }
+  .grain {
+    position: fixed; inset: -100px; z-index: 70; pointer-events: none; opacity: 0.35;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="matrix" values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.04 0"/></filter><rect width="100%" height="100%" filter="url(%23n)"/></svg>');
+    animation: grain-step 1s steps(3) infinite;
+  }
+  @keyframes grain-step { 0% { transform: translate(0,0); } 33% { transform: translate(-40px,25px); } 66% { transform: translate(30px,-35px); } 100% { transform: translate(0,0); } }
+
+  /* ---------- shared section scaffolding ---------- */
+  .wrap { max-width: 1140px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 44px); }
+  section.block { padding: clamp(60px, 9vh, 110px) 0; position: relative; }
+  .kicker {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--accent-2);
+  }
+  .block h2 { font-size: clamp(28px, 3.8vw, 44px); letter-spacing: -0.025em; line-height: 1.08; margin: 12px 0 12px; }
+  .block .sub { color: var(--ink-dim); max-width: 56ch; line-height: 1.65; margin: 0; font-size: 15.5px; }
+  .center { text-align: center; }
+  .center .sub { margin-inline: auto; }
+  .reveal { opacity: 0; transform: translateY(28px); }
+  .reveal.in {
+    opacity: 1; transform: none;
+    transition: opacity 0.7s var(--ease-out) var(--d, 0s), transform 0.7s var(--ease-out) var(--d, 0s);
+  }
+
+  /* ---------- hero ---------- */
+  .hero { padding: clamp(56px, 9vh, 96px) 0 30px; text-align: center; }
+  .hero .pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent-2); border: 1px solid rgba(41, 230, 167, 0.3); border-radius: 999px;
+    padding: 8px 16px; background: rgba(41, 230, 167, 0.06);
+    opacity: 0; animation: rise 0.8s var(--ease-out) 0.05s forwards;
+  }
+  .hero h1 {
+    margin: 24px auto 0; font-weight: 800; letter-spacing: -0.035em;
+    font-size: clamp(40px, 6.6vw, 84px); line-height: 1.0; max-width: 15ch;
+    opacity: 0; animation: rise 0.9s var(--ease-out) 0.18s forwards;
+  }
+  .hero h1 .shimmer {
+    background: linear-gradient(100deg, var(--ink) 20%, var(--accent) 42%, var(--accent-2) 58%, var(--ink) 80%);
+    background-size: 220% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: rise 0.9s var(--ease-out) 0.18s forwards, shimmer 7s ease-in-out 1.4s infinite;
+    opacity: 0; display: inline-block;
+  }
+  @keyframes shimmer { 50% { background-position-x: 100%; } }
+  .hero .lede {
+    max-width: 54ch; margin: 22px auto 0; color: var(--ink-dim);
+    font-size: clamp(15px, 1.4vw, 17.5px); line-height: 1.7;
+    opacity: 0; animation: rise 0.9s var(--ease-out) 0.34s forwards;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+  .hero .ctas {
+    display: flex; gap: 14px; justify-content: center; align-items: center; flex-wrap: wrap;
+    margin-top: 34px;
+    opacity: 0; animation: rise 0.9s var(--ease-out) 0.48s forwards;
+  }
+  .cta-ring {
+    position: relative; display: inline-block; text-decoration: none;
+    color: var(--ink); font: 600 15px/1 var(--font-sans);
+    padding: 16px 34px; border-radius: 999px;
+    background:
+      linear-gradient(var(--bg-elev), var(--bg-elev)) padding-box,
+      conic-gradient(from var(--ring), var(--accent), var(--accent-2), var(--hot), var(--accent)) border-box;
+    border: 1.5px solid transparent;
+    animation: ring-spin 4s linear infinite;
+    transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) ease;
+  }
+  @keyframes ring-spin { to { --ring: 360deg; } }
+  .cta-ring:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 44px rgba(124, 92, 255, 0.4); }
+  .cta-ring:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+  .cta-ghost { color: var(--ink-dim); text-decoration: none; font-size: 14.5px; padding: 14px 10px; transition: color var(--dur-1) ease; }
+  .cta-ghost:hover { color: var(--ink); }
+  .cta-ghost:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .hero .fine { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); margin-top: 18px; opacity: 0; animation: rise 0.9s var(--ease-out) 0.6s forwards; }
+
+  /* ---------- product mockup ---------- */
+  .stagearea { perspective: 1400px; padding: 44px 0 0; }
+  .mock {
+    position: relative; max-width: 940px; margin: 0 auto;
+    border-radius: 18px; border: 1px solid rgba(244, 243, 247, 0.13);
+    background: linear-gradient(170deg, #14141f, #0c0c14);
+    box-shadow: 0 40px 120px -30px rgba(0, 0, 0, 0.8);
+    transform: rotateX(var(--rx, 0deg)) rotateY(var(--ryw, 0deg));
+    will-change: transform;
+    animation: bob 7s ease-in-out infinite;
+  }
+  @keyframes bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -10px; } }
+  .mock::before {
+    content: ""; position: absolute; left: 8%; right: 8%; bottom: -12%; height: 30%;
+    background: radial-gradient(50% 100% at 50% 0%, rgba(124, 92, 255, 0.4), transparent 70%);
+    filter: blur(30px); z-index: -1;
+  }
+  .mock-top { display: flex; align-items: center; gap: 8px; padding: 13px 16px; border-bottom: 1px solid var(--line); }
+  .mock-top i { width: 10px; height: 10px; border-radius: 50%; background: #2a2a3d; }
+  .mock-top i:nth-child(1) { background: #ff5f57; } .mock-top i:nth-child(2) { background: #febc2e; } .mock-top i:nth-child(3) { background: #28c840; }
+  .mock-top span { margin-left: 10px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-dim); }
+  .mock-body { display: grid; grid-template-columns: 168px 1fr; min-height: 380px; }
+  @media (max-width: 720px) { .mock-body { grid-template-columns: 1fr; } .mock-rail { display: none; } }
+  .mock-rail { border-right: 1px solid var(--line); padding: 14px 10px; font-size: 12.5px; color: var(--ink-dim); }
+  .mock-rail .it { padding: 8px 10px; border-radius: 8px; margin-bottom: 2px; }
+  .mock-rail .it.on { background: rgba(124, 92, 255, 0.14); color: var(--ink); }
+  .mock-main { padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  .mock-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .ms { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+  .ms .k { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); }
+  .ms .v { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 4px; }
+  .ms .v em { font-style: normal; font-size: 11px; font-weight: 600; margin-left: 6px; }
+  .ms .up { color: var(--accent-2); } .ms .down { color: var(--hot); }
+  .mock-chart { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px 6px; flex: 1; }
+  .mock-chart svg { width: 100%; height: 150px; display: block; }
+  .mock-chart .area { fill: url(#sigGrad); opacity: 0; }
+  .mock-chart .stroke { fill: none; stroke: var(--accent-2); stroke-width: 2; stroke-dasharray: 1200; stroke-dashoffset: 1200; }
+  .mock.seen .stroke { animation: chart-draw 1.6s var(--ease-out) 0.3s forwards; }
+  .mock.seen .area { animation: chart-fill 0.8s ease 1.5s forwards; }
+  @keyframes chart-draw { to { stroke-dashoffset: 0; } }
+  @keyframes chart-fill { to { opacity: 0.35; } }
+  .mock-rows { display: flex; flex-direction: column; gap: 7px; }
+  .mr { display: grid; grid-template-columns: 1fr 90px; gap: 12px; align-items: center; font-size: 12px; color: var(--ink-dim); }
+  .mr .bar { height: 6px; border-radius: 3px; background: rgba(244, 243, 247, 0.08); overflow: hidden; }
+  .mr .bar i { display: block; height: 100%; border-radius: 3px; width: 0; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+  .mock.seen .mr .bar i { transition: width 1s var(--ease-out) calc(0.5s + var(--i) * 0.12s); width: calc(var(--p) * 1%); }
+
+  /* ---------- logo marquee ---------- */
+  .logos { padding: 54px 0 10px; overflow: hidden; }
+  .logos .lab { text-align: center; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 22px; }
+  .logo-track { display: flex; width: max-content; gap: 64px; animation: lscroll 30s linear infinite; }
+  .logos:hover .logo-track { animation-play-state: paused; }
+  .logo-track span {
+    font-weight: 700; font-size: 17px; letter-spacing: -0.01em; color: rgba(244, 243, 247, 0.34);
+    white-space: nowrap; transition: color var(--dur-2) ease;
+  }
+  .logo-track span:hover { color: var(--ink); }
+  .logo-track .m { font-family: var(--font-mono); font-weight: 500; letter-spacing: 0.1em; }
+  @keyframes lscroll { to { transform: translateX(-50%); } }
+
+  /* ---------- bento ---------- */
+  .bento { display: grid; gap: 14px; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 176px; margin-top: 44px; }
+  @media (max-width: 860px) { .bento { grid-template-columns: 1fr 1fr; } }
+  .tile {
+    position: relative; border-radius: 18px; overflow: hidden;
+    background: var(--glass); backdrop-filter: blur(10px);
+    border: 1px solid var(--line);
+    padding: 22px; display: flex; flex-direction: column;
+  }
+  .tile::before {
+    content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px;
+    background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%),
+                rgba(124, 92, 255, 0.9), rgba(41, 230, 167, 0.25) 45%, transparent 65%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+    opacity: 0; transition: opacity 0.35s ease; pointer-events: none;
+  }
+  .tile:hover::before { opacity: 1; }
+  .tile h3 { margin: 0 0 6px; font-size: 16px; }
+  .tile p { margin: 0; color: var(--ink-dim); font-size: 13px; line-height: 1.55; }
+  .t-wide { grid-column: span 2; }
+  .t-full { grid-column: 1 / -1; }
+  .tile .art { margin-top: auto; }
+  .heat { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; }
+  .heat i { aspect-ratio: 1; border-radius: 2.5px; background: var(--accent); opacity: calc(0.06 + var(--h) * 0.9); transition: opacity 0.6s ease calc(var(--i) * 12ms); }
+  .tile:hover .heat i { opacity: calc(0.1 + (1 - var(--h)) * 0.85); }
+  .gaze { position: relative; height: 46px; }
+  .gaze::before { content: ""; position: absolute; inset: 50% auto auto 0; right: 0; height: 1px; background: var(--line); }
+  .gaze i { position: absolute; top: 50%; width: 9px; height: 9px; margin: -4.5px; border-radius: 50%; background: var(--accent-2); left: calc(var(--x) * 100%); opacity: calc(0.35 + var(--o) * 0.65); transform: scale(calc(0.6 + var(--o) * 0.9)); }
+  .ci {
+    font-family: var(--font-mono); font-size: 11.5px; line-height: 1.5; color: var(--ink-dim);
+    background: rgba(8, 8, 13, 0.55); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px;
+  }
+  .ci .ok { color: var(--accent-2); } .ci b { color: var(--ink); font-weight: 600; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chips span {
+    font-family: var(--font-mono); font-size: 11px; color: var(--ink-dim);
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px;
+    background: rgba(8, 8, 13, 0.4); transition: color 0.25s ease, border-color 0.25s ease;
+  }
+  .tile:hover .chips span { color: var(--ink); border-color: rgba(244, 243, 247, 0.2); }
+  .spark2 { display: flex; align-items: flex-end; gap: 3px; height: 40px; }
+  .spark2 i { flex: 1; border-radius: 2px 2px 0 0; background: rgba(255, 183, 77, 0.4); height: calc(var(--h) * 1%); transform-origin: bottom; transform: scaleY(0.35); transition: transform 0.5s var(--ease-out) calc(var(--i) * 40ms); }
+  .tile:hover .spark2 i { transform: scaleY(1); background: var(--gold); }
+
+  /* ---------- stats band ---------- */
+  .band { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: rgba(16, 16, 26, 0.35); }
+  .band .wrap { display: flex; gap: clamp(28px, 6vw, 90px); flex-wrap: wrap; justify-content: center; padding-top: 52px; padding-bottom: 52px; text-align: center; }
+  .stat .num { font-weight: 800; font-size: clamp(34px, 4.6vw, 58px); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; line-height: 1; }
+  .stat:nth-child(1) .num { color: var(--accent-2); } .stat:nth-child(2) .num { color: var(--accent); } .stat:nth-child(3) .num { color: var(--gold); }
+  .stat .num em { font-style: normal; font-size: 0.5em; color: var(--ink-dim); }
+  .stat .lb { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-dim); margin-top: 10px; }
+
+  /* ---------- testimonials ---------- */
+  .quotes { display: grid; gap: 14px; grid-template-columns: repeat(3, 1fr); margin-top: 44px; }
+  @media (max-width: 860px) { .quotes { grid-template-columns: 1fr; } }
+  .q {
+    background: var(--glass); backdrop-filter: blur(10px);
+    border: 1px solid var(--line); border-radius: 16px; padding: 22px;
+    display: flex; flex-direction: column; gap: 16px;
+    transition: transform var(--dur-2) var(--ease-out), border-color var(--dur-2) ease;
+  }
+  .q:hover { transform: translateY(-4px); border-color: rgba(244, 243, 247, 0.2); }
+  .q p { margin: 0; font-size: 14.5px; line-height: 1.65; color: #cbcad6; }
+  .q p b { color: var(--ink); }
+  .q .who { display: flex; gap: 12px; align-items: center; margin-top: auto; }
+  .q .av { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; font: 700 12px var(--font-mono); color: #0a0a10; }
+  .q .who b { display: block; font-size: 13.5px; }
+  .q .who span { font-size: 12px; color: var(--ink-dim); }
+
+  /* ---------- pricing ---------- */
+  .toggle-row { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 30px; font-size: 14px; color: var(--ink-dim); }
+  .bill-toggle {
+    width: 56px; height: 30px; border-radius: 999px; border: none; cursor: pointer;
+    background: #23233a; position: relative; flex: none;
+  }
+  .bill-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .bill-toggle .knob { position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: transform 0.35s var(--ease-bounce); }
+  .bill-toggle[aria-checked="true"] { background: var(--accent-2); }
+  .bill-toggle[aria-checked="true"] .knob { transform: translateX(26px); }
+  .toggle-row .save { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.1em; color: var(--accent-2); border: 1px solid rgba(41, 230, 167, 0.3); border-radius: 999px; padding: 4px 10px; }
+  .plans { display: grid; gap: 14px; grid-template-columns: repeat(3, 1fr); margin-top: 34px; align-items: start; }
+  @media (max-width: 860px) { .plans { grid-template-columns: 1fr; } }
+  .plan {
+    background: var(--glass); backdrop-filter: blur(10px);
+    border: 1px solid var(--line); border-radius: 20px; padding: 26px;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .plan.pop {
+    background:
+      linear-gradient(rgba(14, 14, 24, 0.92), rgba(14, 14, 24, 0.92)) padding-box,
+      conic-gradient(from var(--ring), var(--accent), var(--accent-2), var(--hot), var(--accent)) border-box;
+    border: 1.5px solid transparent;
+    animation: ring-spin 6s linear infinite;
+    transform: translateY(-8px);
+  }
+  .plan .chip { align-self: flex-start; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--gold); border: 1px solid rgba(255, 183, 77, 0.35); border-radius: 999px; padding: 4px 10px; margin-bottom: 14px; }
+  .plan h3 { margin: 0 0 4px; font-size: 17px; }
+  .plan .pd { color: var(--ink-dim); font-size: 12.5px; margin: 0 0 18px; }
+  .price { font-size: 42px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .price em { font-style: normal; font-size: 14px; font-weight: 500; color: var(--ink-dim); }
+  .plan ul { list-style: none; margin: 18px 0 22px; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+  .plan li { font-size: 13.5px; color: #c2c1cf; padding-left: 22px; position: relative; }
+  .plan li::before { content: "✓"; position: absolute; left: 0; color: var(--accent-2); font-weight: 700; }
+  .plan .go {
+    margin-top: auto; text-align: center; text-decoration: none; border-radius: 12px; padding: 13px 0;
+    font: 600 14px var(--font-sans); color: var(--ink);
+    border: 1px solid var(--line);
+    transition: background var(--dur-1) ease, border-color var(--dur-1) ease, transform var(--dur-1) var(--ease-out);
+  }
+  .plan .go:hover { border-color: var(--ink-dim); background: rgba(244, 243, 247, 0.05); transform: translateY(-1px); }
+  .plan.pop .go { background: #6f4dff; border-color: transparent; color: #fff; }
+  .plan.pop .go:hover { box-shadow: 0 8px 26px rgba(124, 92, 255, 0.4); }
+  .plan .go:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  /* ---------- FAQ ---------- */
+  .faq { max-width: 720px; margin: 40px auto 0; }
+  .fq { border-bottom: 1px solid var(--line); }
+  .fq button {
+    width: 100%; background: none; border: none; color: var(--ink); cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center; gap: 16px;
+    font: 600 15.5px var(--font-sans); text-align: left; padding: 20px 4px;
+  }
+  .fq button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .fq .plus { flex: none; width: 22px; height: 22px; position: relative; }
+  .fq .plus::before, .fq .plus::after { content: ""; position: absolute; inset: 50% auto auto 0; right: 0; height: 2px; background: var(--ink-dim); border-radius: 1px; transition: transform 0.35s var(--ease-out); }
+  .fq .plus::after { transform: rotate(90deg); }
+  .fq.open .plus::after { transform: rotate(0deg); }
+  .fq .a { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.4s var(--ease-out); }
+  .fq.open .a { grid-template-rows: 1fr; }
+  .fq .a > div { overflow: hidden; }
+  .fq .a p { margin: 0; padding: 0 4px 20px; color: var(--ink-dim); font-size: 14px; line-height: 1.65; max-width: 62ch; }
+
+  /* ---------- final CTA + footer ---------- */
+  .fin { text-align: center; }
+  .fin h2 { max-width: 18ch; margin-inline: auto; }
+  footer.site {
+    border-top: 1px solid var(--line); margin-top: 30px;
+  }
+  footer.site .wrap { display: flex; gap: 20px; flex-wrap: wrap; align-items: baseline; justify-content: space-between; padding-top: 34px; padding-bottom: 60px; color: var(--ink-dim); font-size: 13px; }
+  footer.site a { color: var(--ink-dim); text-decoration: none; margin-left: 18px; transition: color var(--dur-1) ease; }
+  footer.site a:hover { color: var(--ink); }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .hero .pill, .hero h1, .hero .lede, .hero .ctas, .hero .fine { animation: none; opacity: 1; transform: none; }
+    .hero h1 .shimmer { animation: none; opacity: 1; }
+    .orb, .grain, .cta-ring, .plan.pop, .logo .pip::after { animation: none !important; }
+    .mock { animation: none; transform: none !important; }
+    .mock .stroke { stroke-dashoffset: 0 !important; animation: none !important; }
+    .mock .area { opacity: 0.35 !important; animation: none !important; }
+    .mock.seen .mr .bar i { transition: none; width: calc(var(--p) * 1%); }
+    .logo-track { animation: none; flex-wrap: wrap; width: auto; justify-content: center; }
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .tile::before { display: none; }
+    .heat i, .spark2 i { transition: none; }
+    .q, .q:hover, .plan .go, .nav-cta { transform: none; transition: none; }
+    .fq .a { transition: none; }
+    .bill-toggle .knob { transition: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">20</span><span class="chrome-name">Applied: Signal SaaS</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>The commercial genre, on our system</h2>
+  <p class="about-what">A complete SaaS landing page at template-market polish density — glass nav, glowing hero with a live product mockup, logo marquee, glass bento, counters, testimonial wall, pricing with billing toggle, FAQ — every section from Attention Lab components.</p>
+  <p class="about-why"><strong>Why it exists:</strong> this is the genre prompt libraries sell (“what agencies charge $5,000 for”). The difference is under the hood: one attention budget (sky + one ring loop, everything else at rest until interaction), documented timings, and a full reduced-motion contract — the things a generated template never carries.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> hero copy staggers ~140ms apart on cubic-bezier(.16,1,.3,1); the mockup bobs 10px over 7s, tilts ±3° to the pointer, and draws its chart (1.6s stroke, then area fade) on first view; marquee loops 30s and pauses on hover; spotlight bento updates only the hovered tile; counters roll 1.4s cubic ease-out; the billing toggle rolls prices over 500ms; FAQ animates grid-template-rows 0fr→1fr over 400ms.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> orbs, grain, rings, marquee, bob/tilt, shimmer, reveals, and chart draws all freeze to composed static states; prices and accordions swap instantly; smooth scroll turns off.</p>
+</aside>
+
+<div class="orbs" aria-hidden="true"><i class="orb orb-1"></i><i class="orb orb-2"></i><i class="orb orb-3"></i></div>
+<div class="grain" aria-hidden="true"></div>
+
+<nav class="nav" id="nav" aria-label="Site">
+  <a class="logo" href="#" onclick="return false"><span class="pip"></span>signal</a>
+  <div class="nav-links">
+    <a href="#features">Features</a>
+    <a href="#proof">Customers</a>
+    <a href="#pricing">Pricing</a>
+    <a href="#faq">FAQ</a>
+  </div>
+  <button class="nav-cta" onclick="return false">Start free</button>
+</nav>
+
+<main>
+  <section class="hero wrap">
+    <span class="pill"><span aria-hidden="true">●</span> Series A — backed by Foundry</span>
+    <h1>Know where their<br><span class="shimmer">attention actually goes</span></h1>
+    <p class="lede">Signal replays every session as an attention map — where eyes landed, what they skipped, the exact moment they decided to leave. Analytics for the only metric that precedes every other one.</p>
+    <div class="ctas">
+      <a class="cta-ring" href="#" onclick="return false">Start free — 2 min setup</a>
+      <a class="cta-ghost" href="#features">Watch the demo ↓</a>
+    </div>
+    <p class="fine">No card · 50k sessions free · SOC 2 Type II</p>
+  </section>
+
+  <div class="wrap stagearea">
+    <div class="mock" id="mock" aria-label="Signal dashboard preview">
+      <div class="mock-top" aria-hidden="true"><i></i><i></i><i></i><span>app.signal.so — checkout flow</span></div>
+      <div class="mock-body">
+        <div class="mock-rail" aria-hidden="true">
+          <div class="it on">◉ Attention map</div>
+          <div class="it">Sessions</div>
+          <div class="it">Funnels</div>
+          <div class="it">Alerts</div>
+          <div class="it">Reports</div>
+        </div>
+        <div class="mock-main">
+          <div class="mock-stats">
+            <div class="ms"><div class="k">Attention score</div><div class="v"><span data-count="87">0</span><em class="up">▲ 12</em></div></div>
+            <div class="ms"><div class="k">Median dwell</div><div class="v"><span data-count="11.4" data-dec="1">0</span>s<em class="up">▲ 2.1</em></div></div>
+            <div class="ms"><div class="k">Rage clicks</div><div class="v"><span data-count="3">0</span><em class="down">▼ 9</em></div></div>
+          </div>
+          <div class="mock-chart" aria-hidden="true">
+            <svg viewBox="0 0 560 150" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="sigGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stop-color="#29e6a7" stop-opacity="0.5"/>
+                  <stop offset="1" stop-color="#29e6a7" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path class="area" d="M0,118 C40,112 70,84 110,88 S180,120 220,102 S290,40 330,52 S400,96 440,74 S520,28 560,36 L560,150 L0,150 Z"/>
+              <path class="stroke" d="M0,118 C40,112 70,84 110,88 S180,120 220,102 S290,40 330,52 S400,96 440,74 S520,28 560,36"/>
+            </svg>
+          </div>
+          <div class="mock-rows" aria-hidden="true">
+            <div class="mr" style="--p:86;--i:0"><div class="bar"><i></i></div><span>Hero headline</span></div>
+            <div class="mr" style="--p:61;--i:1"><div class="bar"><i></i></div><span>Pricing table</span></div>
+            <div class="mr" style="--p:24;--i:2"><div class="bar"><i></i></div><span>Feature grid</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="logos" aria-label="Customers">
+    <p class="lab">Watched by teams at</p>
+    <div class="logo-track" aria-hidden="true">
+      <span>volta</span><span class="m">RELAY_</span><span>drift.</span><span>Halflight</span><span class="m">NULLTRACE</span><span>Meridian&nbsp;Co</span><span>ossa*</span><span class="m">TERRA/FORM</span><span>Lapidary</span><span>Atelier&nbsp;Nord</span>
+      <span>volta</span><span class="m">RELAY_</span><span>drift.</span><span>Halflight</span><span class="m">NULLTRACE</span><span>Meridian&nbsp;Co</span><span>ossa*</span><span class="m">TERRA/FORM</span><span>Lapidary</span><span>Atelier&nbsp;Nord</span>
+    </div>
+  </section>
+
+  <section class="block wrap" id="features">
+    <p class="kicker reveal">Features</p>
+    <h2 class="reveal" data-d="1">See the page the way<br>your users actually do</h2>
+    <p class="sub reveal" data-d="2">Not clicks. Not pageviews. The pre-attentive sweep, the fixations, the moment attention broke — reconstructed for every session, aggregated for every release.</p>
+    <div class="bento" id="bento">
+      <div class="tile t-wide reveal">
+        <h3>Attention heatmaps, per release</h3>
+        <p>Every deploy gets its own map. Watch a redesign move the eye — or fail to.</p>
+        <div class="art heat" aria-hidden="true"></div>
+      </div>
+      <div class="tile reveal" data-d="1">
+        <h3>Gaze-path replay</h3>
+        <p>The scanpath, fixation by fixation, at 60fps.</p>
+        <div class="art gaze" aria-hidden="true">
+          <i style="--x:0.05;--o:0.9"></i><i style="--x:0.22;--o:1"></i><i style="--x:0.4;--o:0.55"></i><i style="--x:0.58;--o:0.8"></i><i style="--x:0.76;--o:0.35"></i><i style="--x:0.93;--o:0.6"></i>
+        </div>
+      </div>
+      <div class="tile reveal" data-d="2">
+        <h3>Distraction alerts</h3>
+        <p>Pinged the moment a release starts leaking attention to the wrong element.</p>
+        <div class="art spark2" aria-hidden="true">
+          <i style="--h:45;--i:0"></i><i style="--h:70;--i:1"></i><i style="--h:38;--i:2"></i><i style="--h:88;--i:3"></i><i style="--h:56;--i:4"></i><i style="--h:96;--i:5"></i><i style="--h:64;--i:6"></i>
+        </div>
+      </div>
+      <div class="tile reveal" data-d="1">
+        <h3>Privacy-first</h3>
+        <p>No pixels, no cameras — attention is inferred from interaction physics. GDPR &amp; SOC 2.</p>
+      </div>
+      <div class="tile reveal" data-d="2">
+        <h3>A score your CI can read</h3>
+        <p>Gate deploys on attention, right next to Core Web Vitals.</p>
+        <div class="art ci" aria-hidden="true"><span class="ok">✓</span> attention-score <b>87</b> · floor 80 — pass</div>
+      </div>
+      <div class="tile t-full reveal" data-d="1">
+        <h3>Ships with your stack</h3>
+        <p>One script tag or npm install — 4.1 kB gzipped, zero layout thrash, samples on the compositor thread only.</p>
+        <div class="art chips" aria-hidden="true"><span>React</span><span>Vue</span><span>Svelte</span><span>Next.js</span><span>Astro</span><span>plain &lt;script&gt;</span><span>npm i @signal/web</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band">
+    <div class="wrap">
+      <div class="stat reveal"><div class="num"><span data-count="41000000">0</span></div><div class="lb">Sessions mapped / mo</div></div>
+      <div class="stat reveal" data-d="1"><div class="num"><span data-count="312">0</span><em>ms</em></div><div class="lb">Median ingest lag</div></div>
+      <div class="stat reveal" data-d="2"><div class="num"><span data-count="4.9" data-dec="1">0</span><em>/5</em></div><div class="lb">G2 rating · 480 reviews</div></div>
+    </div>
+  </section>
+
+  <section class="block wrap" id="proof">
+    <div class="center">
+      <p class="kicker reveal">Customers</p>
+      <h2 class="reveal" data-d="1">Teams that stopped guessing</h2>
+    </div>
+    <div class="quotes">
+      <div class="q reveal"><p>“We rebuilt our pricing page three times on gut feel. Signal showed the eye never reached the yearly toggle — <b>one move, +19% annual plans.</b>”</p>
+        <div class="who"><span class="av" style="background:#29e6a7">MV</span><div><b>Mara Voss</b><span>Head of Growth, Volta</span></div></div></div>
+      <div class="q reveal" data-d="1"><p>“The gaze replays ended a six-month design argument in one meeting. <b>Nobody argues with the scanpath.</b>”</p>
+        <div class="who"><span class="av" style="background:#7c5cff">JK</span><div><b>Jonas Keller</b><span>Design Director, Atelier Nord</span></div></div></div>
+      <div class="q reveal" data-d="2"><p>“Attention score is now on the release checklist next to Core Web Vitals. <b>If it drops, we don't ship.</b>”</p>
+        <div class="who"><span class="av" style="background:#ffb74d">AR</span><div><b>Amara Reyes</b><span>VP Engineering, Relay</span></div></div></div>
+    </div>
+  </section>
+
+  <section class="block wrap" id="pricing">
+    <div class="center">
+      <p class="kicker reveal">Pricing</p>
+      <h2 class="reveal" data-d="1">Starts free. Scales honest.</h2>
+      <div class="toggle-row reveal" data-d="2">
+        <span id="lblMo">Monthly</span>
+        <button class="bill-toggle" id="billToggle" role="switch" aria-checked="false" aria-label="Bill yearly"><span class="knob"></span></button>
+        <span id="lblYr">Yearly</span>
+        <span class="save">2 months free</span>
+      </div>
+    </div>
+    <div class="plans">
+      <div class="plan reveal">
+        <h3>Scout</h3>
+        <p class="pd">For side projects and early ideas.</p>
+        <div class="price">$<span class="pv" data-mo="0" data-yr="0">0</span><em>/mo</em></div>
+        <ul><li>50k sessions / month</li><li>Attention maps</li><li>7-day retention</li><li>Community support</li></ul>
+        <a class="go" href="#" onclick="return false">Start free</a>
+      </div>
+      <div class="plan pop reveal" data-d="1">
+        <span class="chip">Most loved</span>
+        <h3>Studio</h3>
+        <p class="pd">For product teams shipping weekly.</p>
+        <div class="price">$<span class="pv" data-mo="79" data-yr="65">79</span><em>/mo</em></div>
+        <ul><li>1M sessions / month</li><li>Gaze-path replay</li><li>Distraction alerts</li><li>Release comparisons</li><li>Slack + email support</li></ul>
+        <a class="go" href="#" onclick="return false">Start 14-day trial</a>
+      </div>
+      <div class="plan reveal" data-d="2">
+        <h3>Observatory</h3>
+        <p class="pd">For platforms measuring everything.</p>
+        <div class="price">$<span class="pv" data-mo="349" data-yr="290">349</span><em>/mo</em></div>
+        <ul><li>Unlimited sessions</li><li>SSO / SAML + audit log</li><li>Data residency</li><li>Dedicated engineer</li></ul>
+        <a class="go" href="#" onclick="return false">Talk to us</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="block wrap" id="faq">
+    <div class="center">
+      <p class="kicker reveal">FAQ</p>
+      <h2 class="reveal" data-d="1">The questions everyone asks</h2>
+    </div>
+    <div class="faq">
+      <div class="fq"><button aria-expanded="false">How can you infer attention without eye tracking?<span class="plus" aria-hidden="true"></span></button>
+        <div class="a"><div><p>Cursor physics, scroll velocity, dwell geometry, and viewport focus correlate with gaze at r≈0.7 in the published literature. We model the ensemble, calibrate per device class, and report confidence alongside every map — never a camera, never biometrics.</p></div></div></div>
+      <div class="fq"><button aria-expanded="false">Will the snippet slow my site down?<span class="plus" aria-hidden="true"></span></button>
+        <div class="a"><div><p>4.1 kB gzipped, loads async after first paint, samples passively on the compositor thread, and batches uploads on idle. Zero effect on INP or LCP — we publish the benchmark suite.</p></div></div></div>
+      <div class="fq"><button aria-expanded="false">Is this compatible with GDPR?<span class="plus" aria-hidden="true"></span></button>
+        <div class="a"><div><p>Yes. No PII leaves the page: text is never captured, inputs are never read, and maps aggregate at the layout level. EU data residency is available on Observatory.</p></div></div></div>
+      <div class="fq"><button aria-expanded="false">What happens when I hit my session limit?<span class="plus" aria-hidden="true"></span></button>
+        <div class="a"><div><p>Nothing breaks — we sample down gracefully and tell you. No surprise overages, ever. Upgrade when the sampling note starts to annoy you.</p></div></div></div>
+    </div>
+  </section>
+
+  <section class="block wrap fin">
+    <p class="kicker reveal">Two minutes to first map</p>
+    <h2 class="reveal" data-d="1">Your next release deserves to be watched</h2>
+    <div class="ctas reveal" data-d="2" style="display:flex;gap:14px;justify-content:center;margin-top:26px">
+      <a class="cta-ring" href="#" onclick="return false">Start free — no card</a>
+    </div>
+  </section>
+</main>
+
+<footer class="site">
+  <div class="wrap">
+    <span><b style="color:var(--ink)">signal</b> — attention analytics · an Attention Lab demonstration</span>
+    <span><a href="#" onclick="return false">Privacy</a><a href="#" onclick="return false">Security</a><a href="#" onclick="return false">Docs</a><a href="#" onclick="return false">Status</a></span>
+  </div>
+</footer>
+
+<script>
+  // ----- about panel -----
+  const infoBtn = document.querySelector('.chrome-info');
+  const aboutPanel = document.getElementById('about');
+  infoBtn.addEventListener('click', () => {
+    const open = aboutPanel.hidden;
+    aboutPanel.hidden = !open;
+    infoBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ----- nav floor on scroll -----
+  const nav = document.getElementById('nav');
+  addEventListener('scroll', () => nav.classList.toggle('scrolled', scrollY > 24), { passive: true });
+
+  // ----- reveals -----
+  document.querySelectorAll('.reveal').forEach(el => {
+    if (el.dataset.d) el.style.setProperty('--d', (+el.dataset.d * 0.08) + 's');
+  });
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // ----- mockup: chart draw on first view + pointer tilt -----
+  const mock = document.getElementById('mock');
+  new IntersectionObserver(([e], obs) => {
+    if (e.isIntersecting) { mock.classList.add('seen'); obs.disconnect(); }
+  }, { threshold: 0.35 }).observe(mock);
+
+  if (!reduceMotion.matches && matchMedia('(pointer: fine)').matches) {
+    const zone = mock.parentElement;
+    let raf = null, trx = 0, tryy = 0, rx = 0, ry = 0;
+    function loop() {
+      rx += (trx - rx) * 0.1;
+      ry += (tryy - ry) * 0.1;
+      mock.style.setProperty('--rx', rx.toFixed(3) + 'deg');
+      mock.style.setProperty('--ryw', ry.toFixed(3) + 'deg');
+      if (Math.abs(trx - rx) > 0.01 || Math.abs(tryy - ry) > 0.01) raf = requestAnimationFrame(loop);
+      else raf = null;
+    }
+    const kick = () => { if (!raf) raf = requestAnimationFrame(loop); };
+    zone.addEventListener('pointermove', e => {
+      const r = mock.getBoundingClientRect();
+      tryy = ((e.clientX - r.left) / r.width - 0.5) * 6;
+      trx = (0.5 - (e.clientY - r.top) / r.height) * 6;
+      kick();
+    }, { passive: true });
+    zone.addEventListener('pointerleave', () => { trx = 0; tryy = 0; kick(); });
+  }
+
+  // ----- heatmap tile cells -----
+  const heat = document.querySelector('.heat');
+  if (heat) {
+    for (let i = 0; i < 48; i++) {
+      const c = document.createElement('i');
+      const x = i % 24, y = (i / 24) | 0;
+      // plausible attention falloff: hot top-left block, secondary hotspot right
+      const h = Math.max(
+        Math.exp(-((x - 3.5) ** 2 / 14 + (y - 0.3) ** 2 / 0.9)),
+        0.75 * Math.exp(-((x - 16) ** 2 / 9 + (y - 1.1) ** 2 / 0.8))
+      );
+      c.style.setProperty('--h', h.toFixed(2));
+      c.style.setProperty('--i', i);
+      heat.appendChild(c);
+    }
+  }
+
+  // ----- spotlight bento (hovered tile only) -----
+  if (!reduceMotion.matches) {
+    const bento = document.getElementById('bento');
+    let raf = null, ev = null;
+    bento.addEventListener('pointermove', e => {
+      ev = e;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        const tile = ev.target.closest('.tile');
+        if (!tile) return;
+        const r = tile.getBoundingClientRect();
+        tile.style.setProperty('--mx', (ev.clientX - r.left) + 'px');
+        tile.style.setProperty('--my', (ev.clientY - r.top) + 'px');
+      });
+    }, { passive: true });
+  }
+
+  // ----- counters -----
+  function fmt(v, dec) {
+    if (dec) return v.toFixed(dec);
+    if (v >= 1000000) return (v / 1000000).toFixed(0) + 'M';
+    return Math.round(v).toLocaleString('en-US');
+  }
+  function runCounter(el) {
+    const target = +el.dataset.count, dec = +(el.dataset.dec || 0);
+    if (reduceMotion.matches) { el.textContent = fmt(target, dec); return; }
+    const t0 = performance.now(), DUR = 1400;
+    (function tick(t) {
+      const p = Math.min((t - t0) / DUR, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      el.textContent = fmt(target * e, dec);
+      if (p < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+  const cio = new IntersectionObserver(entries => {
+    for (const e of entries) if (e.isIntersecting) { runCounter(e.target); cio.unobserve(e.target); }
+  }, { threshold: 0.6 });
+  document.querySelectorAll('[data-count]').forEach(el => cio.observe(el));
+
+  // ----- billing toggle: prices roll -----
+  const bill = document.getElementById('billToggle');
+  bill.addEventListener('click', () => {
+    const yearly = bill.getAttribute('aria-checked') !== 'true';
+    bill.setAttribute('aria-checked', String(yearly));
+    document.querySelectorAll('.pv').forEach(el => {
+      const to = +(yearly ? el.dataset.yr : el.dataset.mo);
+      const from = +el.textContent || 0;
+      if (reduceMotion.matches || to === from) { el.textContent = to; return; }
+      const t0 = performance.now(), DUR = 500;
+      (function roll(t) {
+        const p = Math.min((t - t0) / DUR, 1);
+        const e = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(from + (to - from) * e);
+        if (p < 1) requestAnimationFrame(roll);
+      })(t0);
+    });
+  });
+
+  // ----- FAQ accordion -----
+  document.querySelectorAll('.fq button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const fq = btn.closest('.fq');
+      const open = fq.classList.toggle('open');
+      btn.setAttribute('aria-expanded', String(open));
+    });
+  });
+</script>
+</body>
+</html>
