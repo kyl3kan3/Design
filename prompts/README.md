@@ -37,7 +37,7 @@ motion values that make it feel right.
 | [Dialog choreography](components/dialog-choreography.md) | A native <dialog> whose entrance and exit are pure CSS — @starting-style in, allow-discrete out. |
 | [View Transitions swap](components/view-swap.md) | A grid whose shuffles and filters morph — items physically travel to their new slots via the View Transitions API. |
 
-## Concept prompts (20)
+## Concept prompts (21)
 
 Full-page patterns and applied examples, 01–20:
 
@@ -63,6 +63,7 @@ Full-page patterns and applied examples, 01–20:
 | 18 | [Liquid Raymarch](concepts/18-liquid-hero.md) | A signed-distance scene sphere-traced per pixel in one fragment shader: five metaballs on incommensurate orbits blend through a cubic smooth-minimum, one chases your cursor, and a click sends a merge-pulse through the blend radius. |
 | 19 | [Flowmap Type](concepts/19-flowmap-type.md) | A live fluid velocity field follows your cursor: each move splats momentum into a half-float simulation texture that advects itself forward. |
 | 20 | [Applied: Signal SaaS](concepts/20-signal-landing.md) | A complete SaaS landing page at template-market polish density — glass nav, glowing hero with a live product mockup, logo marquee, glass bento, counters, testimonial wall, pricing with billing toggle, FAQ — every section from Attention Lab components. |
+| 21 | [Meridian Studio](concepts/21-molten-studio.md) | What this is: an editorial studio landing whose centrepiece is a real-time raymarched liquid-metal object — three metaballs sphere-traced per pixel, chrome-shaded by reflecting a procedural warm/cool studio environment, morphing on its own and bending toward your cursor. |
 
 ## Provenance
 
