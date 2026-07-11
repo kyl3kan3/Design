@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>16 — Applied: Drift Landing · Attention Lab</title>
+<style>
+  /* ---------- tokens ---------- */
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+    --dur-3: 600ms;
+  }
+  @property --ring {
+    syntax: "<angle>";
+    inherits: false;
+    initial-value: 0deg;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ---------- lab chrome (review navigation only) ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 80;
+    display: flex; align-items: center; gap: 16px; padding: 10px 20px 26px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(8, 8, 13, 0.9), rgba(8, 8, 13, 0));
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; padding: 12px 10px; margin: -12px -10px; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 10px 16px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 79; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- site nav ---------- */
+  .nav {
+    position: sticky; top: 0; z-index: 60;
+    display: flex; align-items: center; gap: 26px;
+    padding: 46px clamp(20px, 6vw, 80px) 14px;
+    background: linear-gradient(to bottom, rgba(8, 8, 13, 0.94) 60%, rgba(8, 8, 13, 0));
+  }
+  .logo { font-weight: 800; font-size: 19px; letter-spacing: -0.02em; color: var(--ink); text-decoration: none; }
+  .logo em { font-style: normal; color: var(--accent-2); }
+  .nav-links { display: flex; gap: 22px; margin-left: auto; }
+  .nav-links a {
+    color: var(--ink-dim); text-decoration: none; font-size: 14px;
+    transition: color var(--dur-1) ease;
+  }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-links a:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .nav-cta {
+    background: none; border: 1px solid var(--line); border-radius: 999px; cursor: pointer;
+    color: var(--ink); font: 600 13.5px var(--font-sans); padding: 10px 20px;
+    transition: border-color var(--dur-1) ease, background var(--dur-1) ease;
+  }
+  .nav-cta:hover { border-color: var(--ink-dim); background: rgba(244, 243, 247, 0.05); }
+  .nav-cta:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (max-width: 700px) { .nav-links a:not(:last-child) { display: none; } }
+
+  /* ---------- hero with aurora ---------- */
+  .hero { position: relative; min-height: 92vh; display: grid; place-items: center; overflow: clip; }
+  .sky { position: absolute; inset: 0; z-index: 0; background: linear-gradient(#05050c, #090914 60%, var(--bg)); }
+  #stars, #aurora { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #aurora { filter: blur(14px) saturate(1.25); mix-blend-mode: screen; }
+  .sky::after {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 30%, rgba(8, 8, 13, 0.6) 62%, var(--bg) 96%);
+  }
+  .hero-inner { position: relative; z-index: 1; text-align: center; padding: 90px 22px 40px; }
+  .badge {
+    font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--accent-2); border: 1px solid rgba(41, 230, 167, 0.3); border-radius: 999px;
+    padding: 8px 16px; background: rgba(41, 230, 167, 0.06);
+    opacity: 0; animation: rise 0.8s var(--ease-out) 0.1s forwards;
+  }
+  .hero h1 {
+    margin: 24px 0 0; font-weight: 800; letter-spacing: -0.035em;
+    font-size: clamp(42px, 7.6vw, 104px); line-height: 1.0;
+    opacity: 0; animation: rise 0.9s var(--ease-out) 0.25s forwards;
+    text-shadow: 0 2px 40px rgba(5, 5, 12, 0.8);
+  }
+  .hero h1 .shimmer {
+    background: linear-gradient(100deg, var(--ink) 20%, var(--accent) 42%, var(--accent-2) 58%, var(--ink) 80%);
+    background-size: 220% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: rise 0.9s var(--ease-out) 0.25s forwards, shimmer 7s ease-in-out 1.4s infinite;
+    opacity: 0; display: inline-block;
+  }
+  @keyframes shimmer { 50% { background-position-x: 100%; } }
+  .hero .lede {
+    max-width: 50ch; margin: 24px auto 0; color: var(--ink-dim);
+    font-size: clamp(15.5px, 1.5vw, 18px); line-height: 1.7;
+    opacity: 0; animation: rise 0.9s var(--ease-out) 0.45s forwards;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: none; } }
+  .cta-row {
+    display: flex; gap: 16px; justify-content: center; align-items: center; flex-wrap: wrap;
+    margin-top: 38px; opacity: 0; animation: rise 0.9s var(--ease-out) 0.6s forwards;
+  }
+  .cta {
+    position: relative; display: inline-block; text-decoration: none;
+    color: var(--ink); font: 600 16px/1 var(--font-sans);
+    padding: 18px 40px; border-radius: 999px;
+    background:
+      linear-gradient(var(--bg-elev), var(--bg-elev)) padding-box,
+      conic-gradient(from var(--ring), var(--accent), var(--accent-2), var(--hot), var(--accent)) border-box;
+    border: 1.5px solid transparent;
+    animation: ring-spin 4s linear infinite;
+    transition: transform var(--dur-2) var(--ease-out), box-shadow var(--dur-2) ease;
+  }
+  @keyframes ring-spin { to { --ring: 360deg; } }
+  .cta:hover { transform: translateY(-2px) scale(1.02); box-shadow: 0 12px 44px rgba(124, 92, 255, 0.4); }
+  .cta:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+  .ghost-link { color: var(--ink-dim); font-size: 14.5px; text-decoration: none; transition: color var(--dur-1) ease; }
+  .ghost-link:hover { color: var(--ink); }
+  .ghost-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .live {
+    display: inline-flex; align-items: center; gap: 8px; margin-top: 30px;
+    font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--ink-dim);
+    opacity: 0; animation: rise 0.9s var(--ease-out) 0.75s forwards;
+  }
+  .live .dot { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--accent-2); }
+  .live .dot::after {
+    content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--accent-2);
+    animation: pulse 2.4s var(--ease-out) infinite;
+  }
+  @keyframes pulse { to { transform: scale(3.4); opacity: 0; } }
+
+  /* ---------- shared section scaffolding ---------- */
+  section.block { max-width: 1160px; margin: 0 auto; padding: 90px clamp(20px, 5vw, 60px); }
+  .kicker {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--accent-2);
+  }
+  .block h2 { font-size: clamp(28px, 4vw, 46px); letter-spacing: -0.025em; margin: 10px 0 14px; }
+  .block .sub { color: var(--ink-dim); max-width: 58ch; line-height: 1.65; margin: 0; }
+  .reveal { opacity: 0; transform: translateY(30px); }
+  .reveal.in {
+    opacity: 1; transform: none;
+    transition: opacity 0.7s var(--ease-out) var(--d, 0s), transform 0.7s var(--ease-out) var(--d, 0s);
+  }
+
+  /* ---------- feature bento (spotlight cards) ---------- */
+  .bento { display: grid; gap: 14px; grid-template-columns: repeat(4, 1fr); grid-auto-rows: 158px; margin-top: 40px; }
+  @media (max-width: 860px) { .bento { grid-template-columns: repeat(2, 1fr); } }
+  .tile {
+    position: relative; border-radius: 18px; overflow: hidden;
+    background: var(--bg-elev); border: 1px solid var(--line);
+    padding: 22px; display: flex; flex-direction: column;
+  }
+  .tile::before {
+    content: ""; position: absolute; inset: -1px; border-radius: inherit; padding: 1px;
+    background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%),
+                rgba(124, 92, 255, 0.9), rgba(41, 230, 167, 0.25) 45%, transparent 65%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+    opacity: 0; transition: opacity 0.35s ease; pointer-events: none;
+  }
+  .tile:hover::before { opacity: 1; }
+  .tile h3 { margin: 0 0 6px; font-size: 16.5px; }
+  .tile p { margin: 0; color: var(--ink-dim); font-size: 13px; line-height: 1.55; }
+  .t-wide { grid-column: span 2; }
+  .tile .art { margin-top: auto; }
+  /* tiny per-tile motifs, ambient → hover-fast, all transform-only */
+  .waves { display: flex; align-items: flex-end; gap: 4px; height: 34px; }
+  .waves i {
+    flex: 1; border-radius: 2px 2px 0 0; background: linear-gradient(to top, var(--accent), var(--accent-2));
+    transform-origin: bottom; animation: wv 2.6s ease-in-out calc(var(--i) * -0.35s) infinite;
+  }
+  @keyframes wv { 0%, 100% { transform: scaleY(0.25); } 50% { transform: scaleY(calc(var(--pk) * 1%)); } }
+  .tile:hover .waves i { animation-duration: 0.9s; }
+  .moon-ring { position: relative; width: 54px; height: 54px; }
+  .moon-ring::before { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 1.5px solid var(--line); }
+  .moon-ring::after {
+    content: ""; position: absolute; top: -3px; left: 50%; width: 8px; height: 8px; margin-left: -4px;
+    border-radius: 50%; background: var(--gold);
+  }
+  .moon-ring { animation: spin-slow 14s linear infinite; }
+  .tile:hover .moon-ring { animation-duration: 4s; }
+  @keyframes spin-slow { to { transform: rotate(360deg); } }
+
+  /* ---------- stats (counters) ---------- */
+  .stats {
+    display: flex; gap: clamp(28px, 6vw, 90px); flex-wrap: wrap; justify-content: center;
+    text-align: center; margin-top: 44px;
+  }
+  .stat .num {
+    font-weight: 800; font-size: clamp(38px, 5.6vw, 72px); letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums; line-height: 1;
+  }
+  .stat .num em { font-style: normal; font-size: 0.44em; color: var(--ink-dim); }
+  .stat:nth-child(1) .num { color: var(--accent-2); }
+  .stat:nth-child(2) .num { color: var(--gold); }
+  .stat:nth-child(3) .num { color: var(--accent); }
+  .stat .lb {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--ink-dim); margin-top: 10px;
+  }
+
+  /* ---------- soundscapes list ---------- */
+  .rows { margin-top: 34px; }
+  .row {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 20px;
+    padding: 22px 10px; border-top: 1px solid var(--line);
+    text-decoration: none; color: var(--ink);
+    transition: background var(--dur-2) ease, padding-left var(--dur-2) var(--ease-out);
+  }
+  .row:last-child { border-bottom: 1px solid var(--line); }
+  .row:hover { background: rgba(124, 92, 255, 0.06); padding-left: 24px; }
+  .row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .row .t { font-size: clamp(18px, 2.2vw, 26px); font-weight: 700; letter-spacing: -0.01em; }
+  .row .m { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-dim); flex: none; }
+  .row .m b { color: var(--accent-2); font-weight: 600; }
+
+  /* ---------- final CTA + footer ---------- */
+  .fin { text-align: center; padding-bottom: 40px; }
+  .fin h2 { font-size: clamp(30px, 4.6vw, 54px); }
+  .magnet-zone { display: inline-grid; place-items: center; padding: 30px 60px; }
+  .btn-magnet {
+    position: relative; overflow: hidden; background: #6f4dff; border: none; color: #fff; cursor: pointer;
+    font: 600 16px/1 var(--font-sans); padding: 18px 42px; border-radius: 999px;
+    will-change: transform; transition: box-shadow var(--dur-2) ease;
+  }
+  .btn-magnet:hover { box-shadow: 0 10px 38px rgba(124, 92, 255, 0.45); }
+  .btn-magnet:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  .btn-magnet .shine {
+    position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%);
+    transform: translateX(-110%);
+  }
+  .btn-magnet:hover .shine { transform: translateX(110%); transition: transform 650ms ease; }
+  .fine { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); margin-top: 6px; }
+  footer.site {
+    border-top: 1px solid var(--line); margin-top: 40px;
+    display: flex; gap: 20px; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
+    max-width: 1160px; margin-inline: auto; padding: 30px clamp(20px, 5vw, 60px) 46px;
+    color: var(--ink-dim); font-size: 13px;
+  }
+  footer.site a { color: var(--ink-dim); text-decoration: none; margin-left: 18px; transition: color var(--dur-1) ease; }
+  footer.site a:hover { color: var(--ink); }
+
+  /* ---------- reduced motion ---------- */
+  @media (prefers-reduced-motion: reduce) {
+    .badge, .hero h1, .hero .lede, .cta-row, .live { animation: none; opacity: 1; transform: none; }
+    .hero h1 .shimmer { animation: none; opacity: 1; }
+    .cta, .live .dot::after, .waves i, .moon-ring { animation: none !important; }
+    .cta:hover { transform: none; }
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .tile::before { display: none; }
+    .row, .row:hover { transition: none; padding-left: 10px; }
+  }
+</style>
+</head>
+<body>
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">16</span><span class="chrome-name">Applied: Drift Landing</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>The system, applied</h2>
+  <p class="about-what">A complete landing page assembled from the Attention Lab design system: aurora canvas hero, spotlight-border bento, roll-up counters, hover rows, and a magnetic CTA — all on the shared tokens.</p>
+  <p class="about-why"><strong>Why it matters:</strong> concepts prove patterns; a landing page proves the <em>budget</em>. One ambient layer (the sky), one looping element (the CTA ring), everything else silent until the user acts. Attention spending is what a system is for.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> hero copy staggers 150ms apart on cubic-bezier(.16,1,.3,1); scroll reveals trigger at 15% visibility, 80ms siblings; counters roll 1.4s cubic ease-out on arrival; the magnet pulls 35% within 120px; ambient tile loops run 2.6–14s and speed ~3× on hover.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> aurora renders one static frame; entrances, counters, magnetism, spotlight rings, and ambient loops are all replaced with immediate static states.</p>
+</aside>
+
+<main>
+  <div class="hero">
+    <div class="sky" aria-hidden="true">
+      <canvas id="stars"></canvas>
+      <canvas id="aurora"></canvas>
+    </div>
+    <nav class="nav" style="position:absolute;inset:0 0 auto;z-index:2;background:none;padding-top:46px" aria-label="Site">
+      <a class="logo" href="#" onclick="return false">drift<em>.</em></a>
+      <div class="nav-links">
+        <a href="#how" id="lnkHow">How it works</a>
+        <a href="#sounds">Tonight's sky</a>
+        <button class="nav-cta" onclick="return false">Sign in</button>
+      </div>
+    </nav>
+    <div class="hero-inner">
+      <span class="badge">Adaptive sleep audio</span>
+      <h1>Sleep under<br><span class="shimmer">tonight's weather</span></h1>
+      <p class="lede">Drift turns live atmospheric data into slowly evolving soundscapes. No loops. No repeats. The sky writes tonight's album.</p>
+      <div class="cta-row">
+        <a class="cta" href="#" onclick="return false">Begin tonight — free</a>
+        <a class="ghost-link" href="#how">See how it works ↓</a>
+      </div>
+      <div><span class="live"><span class="dot"></span>Now streaming: cold front, Lofoten</span></div>
+    </div>
+  </div>
+
+  <section class="block" id="how">
+    <p class="kicker reveal">How it works</p>
+    <h2 class="reveal" data-d="1">The forecast becomes the album</h2>
+    <p class="sub reveal" data-d="2">Every evening Drift reads the atmosphere over the region you choose and scores it — wind shear becomes texture, pressure becomes tempo, precipitation becomes percussion.</p>
+    <div class="bento" id="bento">
+      <div class="tile t-wide reveal">
+        <h3>Live weather, live sound</h3>
+        <p>Eleven atmospheric variables stream into the synthesis engine. When the front moves, the music moves.</p>
+        <div class="art waves" aria-hidden="true">
+          <i style="--i:0;--pk:70"></i><i style="--i:1;--pk:95"></i><i style="--i:2;--pk:55"></i><i style="--i:3;--pk:100"></i><i style="--i:4;--pk:65"></i><i style="--i:5;--pk:85"></i><i style="--i:6;--pk:45"></i><i style="--i:7;--pk:90"></i>
+        </div>
+      </div>
+      <div class="tile reveal" data-d="1">
+        <h3>Sleep-safe by design</h3>
+        <p>No sudden transients. Everything under 60 dB, everything slower than your heartbeat.</p>
+      </div>
+      <div class="tile reveal" data-d="2">
+        <h3>Night orbit</h3>
+        <p>Follow one station through its whole night.</p>
+        <div class="art moon-ring" aria-hidden="true"></div>
+      </div>
+      <div class="tile reveal" data-d="1">
+        <h3>Offline mornings</h3>
+        <p>Last night's sky is cached — replay the storm that put you under.</p>
+      </div>
+      <div class="tile reveal" data-d="2">
+        <h3>Zero accounts to start</h3>
+        <p>Press play. Sign up only if you want your skies saved.</p>
+      </div>
+      <div class="tile t-wide reveal" data-d="3">
+        <h3>Made with the Attention Lab system</h3>
+        <p>One ambient layer, one looping accent, everything else at rest — motion spent like a budget, exactly as the research says.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <p class="kicker reveal">Tonight, worldwide</p>
+    <h2 class="reveal" data-d="1">The numbers put themselves to bed</h2>
+    <div class="stats">
+      <div class="stat reveal"><div class="num"><span data-count="41208">0</span></div><div class="lb">Asleep right now</div></div>
+      <div class="stat reveal" data-d="1"><div class="num"><span data-count="4.8" data-dec="1">0</span><em>/5</em></div><div class="lb">Store rating</div></div>
+      <div class="stat reveal" data-d="2"><div class="num"><span data-count="0">0</span></div><div class="lb">Loops, ever</div></div>
+    </div>
+  </section>
+
+  <section class="block" id="sounds">
+    <p class="kicker reveal">Tonight's sky</p>
+    <h2 class="reveal" data-d="1">Choose your weather</h2>
+    <div class="rows">
+      <a class="row reveal" href="#" onclick="return false"><span class="t">Cold front — Lofoten</span><span class="m"><b>LIVE</b> · 62 listeners</span></a>
+      <a class="row reveal" data-d="1" href="#" onclick="return false"><span class="t">Monsoon cell — Kerala</span><span class="m"><b>LIVE</b> · 218 listeners</span></a>
+      <a class="row reveal" data-d="2" href="#" onclick="return false"><span class="t">High pressure — Atacama</span><span class="m">calm · near-silence</span></a>
+      <a class="row reveal" data-d="3" href="#" onclick="return false"><span class="t">Lake-effect snow — Ontario</span><span class="m">starts 23:40 local</span></a>
+    </div>
+  </section>
+
+  <section class="block fin">
+    <p class="kicker reveal">Free tonight</p>
+    <h2 class="reveal" data-d="1">The sky is already composing</h2>
+    <div class="magnet-zone reveal" data-d="2" id="magnetZone">
+      <button class="btn-magnet" id="magnetBtn"><span class="shine"></span><span class="inner" style="position:relative;display:inline-block">Begin tonight — free</span></button>
+    </div>
+    <p class="fine reveal" data-d="3">No account · No card · Ends at sunrise</p>
+  </section>
+</main>
+
+<footer class="site">
+  <span>drift. — sleep under tonight's weather</span>
+  <span><a href="#" onclick="return false">Privacy</a><a href="#" onclick="return false">Stations</a><a href="#" onclick="return false">Press</a></span>
+</footer>
+
+<script>
+  // ----- about panel -----
+  const infoBtn = document.querySelector('.chrome-info');
+  const aboutPanel = document.getElementById('about');
+  infoBtn.addEventListener('click', () => {
+    const open = aboutPanel.hidden;
+    aboutPanel.hidden = !open;
+    infoBtn.setAttribute('aria-expanded', String(open));
+  });
+
+  const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+
+  // ----- aurora sky (system component, tuned calmer for a product page) -----
+  const starsCv = document.getElementById('stars');
+  const auroraCv = document.getElementById('aurora');
+  const sctx = starsCv.getContext('2d');
+  const actx = auroraCv.getContext('2d');
+  const hero = document.querySelector('.hero');
+  let W = 0, H = 0, DPR = 1;
+
+  const STARS = Array.from({ length: 130 }, () => ({
+    x: Math.random(), y: Math.random() * 0.7,
+    r: Math.random() < 0.12 ? 1.6 : 0.9, a: 0.15 + Math.random() * 0.6,
+  }));
+  const PALETTES = [
+    ['rgba(124, 92, 255, 0)', 'rgba(124, 92, 255, 0.35)', 'rgba(41, 230, 167, 0.5)'],
+    ['rgba(41, 230, 167, 0)', 'rgba(41, 230, 167, 0.38)', 'rgba(124, 92, 255, 0.3)'],
+  ];
+  const RIBBONS = [
+    { y: 0.14, h: 0.2, p: 0, ph: 0.0, amp: 1.0, alpha: 0.55 },
+    { y: 0.05, h: 0.14, p: 1, ph: 2.1, amp: 0.7, alpha: 0.4 },
+    { y: 0.24, h: 0.16, p: 0, ph: 4.4, amp: 1.2, alpha: 0.3 },
+  ];
+  function field(x, t, ph) {
+    return Math.sin(x * 2.1 + t / 37000 * Math.PI * 2 + ph) * 0.55
+         + Math.sin(x * 5.3 - t / 13000 * Math.PI * 2 + ph * 1.7) * 0.3
+         + Math.sin(x * 11.7 + t / 7000 * Math.PI * 2 + ph * 0.6) * 0.15;
+  }
+  function drawStatic() {
+    sctx.clearRect(0, 0, W, H);
+    for (const s of STARS) {
+      sctx.beginPath();
+      sctx.arc(s.x * W, s.y * H, s.r * DPR, 0, Math.PI * 2);
+      sctx.fillStyle = `rgba(244, 243, 247, ${s.a})`;
+      sctx.fill();
+    }
+  }
+  function drawAurora(t) {
+    actx.clearRect(0, 0, W, H);
+    actx.globalCompositeOperation = 'lighter';
+    const STEP = Math.max(10 * DPR, W / 90);
+    for (const rb of RIBBONS) {
+      const grad = actx.createLinearGradient(0, (rb.y - rb.h * 0.4) * H, 0, (rb.y + rb.h) * H);
+      const [a, b, c] = PALETTES[rb.p];
+      grad.addColorStop(0, a); grad.addColorStop(0.45, b); grad.addColorStop(1, c);
+      actx.globalAlpha = rb.alpha;
+      actx.fillStyle = grad;
+      actx.beginPath();
+      for (let x = 0; x <= W + STEP; x += STEP) {
+        const y = (rb.y + field(x / W, t, rb.ph) * 0.08 * rb.amp) * H;
+        x === 0 ? actx.moveTo(x, y) : actx.lineTo(x, y);
+      }
+      for (let x = W + STEP; x >= -STEP; x -= STEP) {
+        const y = (rb.y + rb.h + field(x / W + 0.3, t, rb.ph + 1.3) * 0.05 * rb.amp) * H;
+        actx.lineTo(x, y);
+      }
+      actx.closePath();
+      actx.fill();
+    }
+    actx.globalAlpha = 1;
+  }
+  function resize() {
+    DPR = Math.min(devicePixelRatio || 1, 2);
+    W = Math.round(hero.clientWidth * DPR);
+    H = Math.round(hero.clientHeight * DPR);
+    for (const cv of [starsCv, auroraCv]) { cv.width = W; cv.height = H; }
+    drawStatic();
+    drawAurora(reduceMotion.matches ? 42000 : performance.now());
+  }
+  addEventListener('resize', resize);
+  resize();
+  if (!reduceMotion.matches) {
+    let f = 0, heroVisible = true;
+    new IntersectionObserver(([e]) => heroVisible = e.isIntersecting).observe(hero);
+    (function loop(t) {
+      if (f++ % 2 === 0 && heroVisible && !document.hidden) drawAurora(t);
+      requestAnimationFrame(loop);
+    })(performance.now());
+  }
+
+  // ----- scroll reveals (80ms sibling stagger via data-d) -----
+  document.querySelectorAll('.reveal').forEach(el => {
+    if (el.dataset.d) el.style.setProperty('--d', (+el.dataset.d * 0.08) + 's');
+  });
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries) if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // ----- counters -----
+  function runCounter(el) {
+    const target = +el.dataset.count, dec = +(el.dataset.dec || 0);
+    if (reduceMotion.matches) { el.textContent = dec ? target.toFixed(dec) : target.toLocaleString('en-US'); return; }
+    const t0 = performance.now(), DUR = 1400;
+    (function tick(t) {
+      const p = Math.min((t - t0) / DUR, 1);
+      const e = 1 - Math.pow(1 - p, 3);
+      const v = target * e;
+      el.textContent = dec ? v.toFixed(dec) : Math.round(v).toLocaleString('en-US');
+      if (p < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+  const cio = new IntersectionObserver(entries => {
+    for (const e of entries) if (e.isIntersecting) { runCounter(e.target); cio.unobserve(e.target); }
+  }, { threshold: 0.6 });
+  document.querySelectorAll('[data-count]').forEach(el => cio.observe(el));
+
+  // ----- spotlight tiles (hovered tile only) -----
+  if (!reduceMotion.matches) {
+    const bento = document.getElementById('bento');
+    let raf = null, ev = null;
+    bento.addEventListener('pointermove', e => {
+      ev = e;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        const tile = ev.target.closest('.tile');
+        if (!tile) return;
+        const r = tile.getBoundingClientRect();
+        tile.style.setProperty('--mx', `${ev.clientX - r.left}px`);
+        tile.style.setProperty('--my', `${ev.clientY - r.top}px`);
+      });
+    }, { passive: true });
+  }
+
+  // ----- magnetic CTA (system component) -----
+  if (!reduceMotion.matches && matchMedia('(pointer: fine)').matches) {
+    const zone = document.getElementById('magnetZone');
+    const btn = document.getElementById('magnetBtn');
+    const inner = btn.querySelector('.inner');
+    let tx = 0, ty = 0, x = 0, y = 0, running = false;
+    function loop() {
+      x += (tx - x) * 0.12;
+      y += (ty - y) * 0.12;
+      btn.style.transform = `translate(${x}px, ${y}px)`;
+      inner.style.transform = `translate(${x * 0.35}px, ${y * 0.35}px)`;
+      if (Math.abs(tx - x) > 0.1 || Math.abs(ty - y) > 0.1) requestAnimationFrame(loop);
+      else { running = false; x = tx; y = ty; }
+    }
+    function kick() { if (!running) { running = true; requestAnimationFrame(loop); } }
+    zone.addEventListener('pointermove', e => {
+      const r = btn.getBoundingClientRect();
+      const dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+      if (Math.hypot(dx, dy) < 120) { tx = dx * 0.35; ty = dy * 0.35; } else { tx = 0; ty = 0; }
+      kick();
+    });
+    zone.addEventListener('pointerleave', () => { tx = 0; ty = 0; kick(); });
+  }
+
+  // ----- smooth-scroll for in-page links (respects reduced motion) -----
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const t = document.querySelector(a.getAttribute('href'));
+      if (!t) return;
+      e.preventDefault();
+      t.scrollIntoView({ behavior: reduceMotion.matches ? 'auto' : 'smooth', block: 'start' });
+    });
+  });
+</script>
+</body>
+</html>

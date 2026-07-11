@@ -34,6 +34,7 @@ Two deliverables live here:
 | 13 | [Change Blindness Lab](concepts/13-change-blindness.html) | Perception science | Interactive experiment: spotting changes under a flicker cut vs. under animation |
 | 14 | [Spring & Easing Lab](concepts/14-easing-lab.html) | Motion craft | Five easing curves raced on one duration; a damped-spring designer emitting native CSS `linear()` |
 | 15 | [Intro Sequence](concepts/15-intro-sequence.html) | Entrance choreography | Preloader counter → staggered curtain wipe → masked hero arrival |
+| 16 | [Applied: Drift Landing](concepts/16-drift-landing.html) | The system, applied | A complete landing page assembled from the system — aurora hero, spotlight bento, counters, magnetic CTA |
 
 Each demo has an **About** panel (top-right) documenting the pattern, the perceptual mechanism
 behind it, the exact timing/easing values used, and its reduced-motion behavior.

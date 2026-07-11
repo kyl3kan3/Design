@@ -130,6 +130,36 @@
     "subtitle": "Cubic ease-out roll over 1.4s · tabular numerals, no digit jitter"
   },
   {
+    "name": "Curtain wipe",
+    "path": "components/curtain-wipe.html",
+    "group": "Transitions",
+    "viewport": {
+      "width": 520,
+      "height": 360
+    },
+    "subtitle": "4 panels · 850ms cubic-bezier(.76,0,.24,1) · 70ms stagger"
+  },
+  {
+    "name": "Dialog choreography",
+    "path": "components/dialog-choreography.html",
+    "group": "Transitions",
+    "viewport": {
+      "width": 520,
+      "height": 360
+    },
+    "subtitle": "Native <dialog> · @starting-style entry, allow-discrete exit — CSS does the choreography"
+  },
+  {
+    "name": "View Transitions swap",
+    "path": "components/view-swap.html",
+    "group": "Transitions",
+    "viewport": {
+      "width": 520,
+      "height": 360
+    },
+    "subtitle": "document.startViewTransition · per-item names → reorders morph"
+  },
+  {
     "name": "Kinetic Typography",
     "path": "concepts/01-kinetic-typography.html",
     "group": "Concepts",
@@ -278,5 +308,15 @@
       "height": 800
     },
     "subtitle": "Counter → curtain wipe → hero arrival"
+  },
+  {
+    "name": "Drift — the system applied",
+    "path": "concepts/16-drift-landing.html",
+    "group": "Examples",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "A full landing page on the Attention Lab tokens and components"
   }
 ]

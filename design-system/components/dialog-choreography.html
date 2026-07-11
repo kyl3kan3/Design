@@ -1,0 +1,35 @@
+<!-- @dsCard group="Transitions" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dialog choreography · Attention Lab</title>
+<style>
+:root{--bg:#08080d;--bg-elev:#10101a;--ink:#f4f3f7;--ink-dim:#8f8ea0;--accent:#7c5cff;--accent-2:#29e6a7;--hot:#ff4d6d;--gold:#ffb74d;--line:rgba(244,243,247,.09);--sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.2,0,0,1);--ease-bounce:cubic-bezier(.34,1.56,.64,1)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:grid;place-items:center;padding:34px 18px 22px}
+.card-label{position:fixed;top:10px;left:14px;font:10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+.open{background:#6f4dff;color:#fff;border:none;border-radius:999px;font:600 14px var(--sans);padding:13px 26px;cursor:pointer}
+dialog{background:var(--bg-elev);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:26px;width:min(330px,86vw);
+  opacity:0;transform:translateY(14px) scale(.93);
+  transition:opacity .2s cubic-bezier(.3,0,.8,.15),transform .2s cubic-bezier(.3,0,.8,.15),display .2s allow-discrete,overlay .2s allow-discrete}
+dialog[open]{opacity:1;transform:none;transition:opacity .3s cubic-bezier(.05,.7,.1,1),transform .3s cubic-bezier(.05,.7,.1,1),display .3s allow-discrete,overlay .3s allow-discrete}
+@starting-style{dialog[open]{opacity:0;transform:translateY(14px) scale(.93)}}
+dialog::backdrop{background:rgba(5,5,9,0);transition:background .3s ease,display .3s allow-discrete,overlay .3s allow-discrete}
+dialog[open]::backdrop{background:rgba(5,5,9,.62)}
+@starting-style{dialog[open]::backdrop{background:rgba(5,5,9,0)}}
+dialog h3{margin:0 0 8px;font-size:18px}dialog p{margin:0 0 18px;color:var(--ink-dim);font-size:13.5px;line-height:1.6}
+.x{background:none;border:1px solid var(--line);border-radius:999px;color:var(--ink);font:600 13px var(--sans);padding:9px 18px;cursor:pointer}
+.x:hover{border-color:var(--ink-dim)}
+</style></head>
+<body>
+<span class="card-label">Dialog choreography</span>
+<button class="open" id="open">Open dialog</button>
+<dialog id="dlg"><h3>Entry 300ms, exit 200ms</h3><p>The entrance decelerates from scale 0.93 via <b>@starting-style</b>; the exit accelerates out — and <b>allow-discrete</b> keeps display:none until the transition finishes. Zero animation JavaScript.</p><button class="x" id="x">Close</button></dialog>
+<script>
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const dlg=document.getElementById("dlg");
+document.getElementById("open").addEventListener("click",()=>dlg.showModal());
+document.getElementById("x").addEventListener("click",()=>dlg.close());
+</script>
+</body></html>

@@ -1,0 +1,36 @@
+<!-- @dsCard group="Transitions" -->
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Curtain wipe · Attention Lab</title>
+<style>
+:root{--bg:#08080d;--bg-elev:#10101a;--ink:#f4f3f7;--ink-dim:#8f8ea0;--accent:#7c5cff;--accent-2:#29e6a7;--hot:#ff4d6d;--gold:#ffb74d;--line:rgba(244,243,247,.09);--sans:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;--ease-out:cubic-bezier(.16,1,.3,1);--ease-snap:cubic-bezier(.2,0,0,1);--ease-bounce:cubic-bezier(.34,1.56,.64,1)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;display:grid;place-items:center;padding:34px 18px 22px}
+.card-label{position:fixed;top:10px;left:14px;font:10.5px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim)}
+button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion: reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+.stage{position:relative;width:min(420px,88vw);height:230px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--bg-elev)}
+.view{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:30px;letter-spacing:-.02em}
+.view small{display:block;text-align:center;font:11px var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ink-dim);margin-top:8px;font-weight:400}
+.vA{background:radial-gradient(90% 90% at 30% 20%,#221647,#0d0d16)}.vB{background:radial-gradient(90% 90% at 70% 80%,#06301f,#0d0d16)}
+.curt{position:absolute;inset:0;display:flex;pointer-events:none}
+.curt i{flex:1;background:#0e0e18;border-right:1px solid rgba(244,243,247,.03);transform:translateY(101%)}
+.curt.run i{animation:sweep 1.7s cubic-bezier(.76,0,.24,1) forwards}
+.curt.run i:nth-child(2){animation-delay:70ms}.curt.run i:nth-child(3){animation-delay:140ms}.curt.run i:nth-child(4){animation-delay:210ms}
+@keyframes sweep{0%{transform:translateY(101%)}38%,55%{transform:translateY(0)}100%{transform:translateY(-101%)}}
+.go{margin-top:16px;background:#6f4dff;color:#fff;border:none;border-radius:999px;font:600 13.5px var(--sans);padding:11px 22px;cursor:pointer}
+</style></head>
+<body>
+<span class="card-label">Curtain wipe</span>
+<div><div class="stage"><div class="view vA" id="vA">Overview<small>Route /home</small></div><div class="view vB" id="vB" hidden>Detail<small>Route /missions/07</small></div><div class="curt" id="curt" aria-hidden="true"><i></i><i></i><i></i><i></i></div></div>
+<button class="go" id="go">Navigate</button></div>
+<script>
+const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let onB=false,busy=false;const curt=document.getElementById("curt"),vA=document.getElementById("vA"),vB=document.getElementById("vB");
+document.getElementById("go").addEventListener("click",()=>{if(busy)return;
+if(RM){onB=!onB;vA.hidden=onB;vB.hidden=!onB;return}
+busy=true;curt.classList.remove("run");void curt.offsetWidth;curt.classList.add("run");
+setTimeout(()=>{onB=!onB;vA.hidden=onB;vB.hidden=!onB},800);
+setTimeout(()=>{curt.classList.remove("run");busy=false},1950);});
+</script>
+</body></html>
