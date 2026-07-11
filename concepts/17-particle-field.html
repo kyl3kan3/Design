@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>17 — Particle Field · Attention Lab</title>
+<style>
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --gold: #ffb74d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --dur-1: 150ms;
+    --dur-2: 300ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px; padding: 14px 20px 30px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(8, 8, 13, 0.92), rgba(8, 8, 13, 0.6) 60%, rgba(8, 8, 13, 0));
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; padding: 12px 10px; margin: -12px -10px; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 10px 16px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 16px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none;
+    background: rgba(8, 8, 13, 0.78); backdrop-filter: blur(8px);
+    border: 1px solid rgba(244, 243, 247, 0.07); border-radius: 999px;
+    padding: 9px 18px; text-align: center; max-width: min(92vw, 560px);
+  }
+
+  /* ---------- stage ---------- */
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .title {
+    position: fixed; left: clamp(20px, 5vw, 60px); bottom: clamp(64px, 10vh, 110px); z-index: 10;
+    pointer-events: none;
+  }
+  .title .kicker {
+    font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.22em;
+    text-transform: uppercase; color: var(--accent-2);
+  }
+  .title h1 {
+    margin: 10px 0 0; font-weight: 800; letter-spacing: -0.03em;
+    font-size: clamp(30px, 4.6vw, 56px); line-height: 1.02;
+    text-shadow: 0 2px 30px rgba(5, 5, 12, 0.9);
+  }
+  .title p { margin: 10px 0 0; color: var(--ink-dim); font-size: 14px; max-width: 40ch; }
+
+  /* shape switcher */
+  .shapes {
+    position: fixed; right: clamp(16px, 4vw, 48px); bottom: clamp(64px, 10vh, 110px); z-index: 10;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .shape-btn {
+    background: rgba(16, 16, 26, 0.72); backdrop-filter: blur(8px);
+    border: 1px solid var(--line); border-radius: 10px; cursor: pointer;
+    color: var(--ink-dim); font: 600 13px var(--font-sans); padding: 11px 18px; text-align: left;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease, background var(--dur-1) ease;
+  }
+  .shape-btn:hover { color: var(--ink); border-color: var(--ink-dim); }
+  .shape-btn.sel { color: var(--ink); border-color: rgba(124, 92, 255, 0.65); background: rgba(124, 92, 255, 0.14); }
+  .shape-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .fallback {
+    position: fixed; inset: 0; display: grid; place-items: center; text-align: center;
+    padding: 40px; color: var(--ink-dim); font-size: 15px; line-height: 1.7;
+  }
+  .fallback b { color: var(--ink); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hint { display: none; } /* the field is frozen in this mode */
+  }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">17</span><span class="chrome-name">Particle Field</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>GPGPU particle field — raw WebGL2</h2>
+  <p class="about-what">262,144 particles simulated entirely on the GPU: positions and velocities live in floating-point textures, a fragment shader integrates curl-noise flow, spring-to-shape forces and your pointer every frame, and the points render with additive blending and depth-attenuated sprites. No libraries.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> a quarter-million things obeying one hand is the signature move of award-tier WebGL sites — mass, physics, and immediate response at a scale DOM animation cannot fake. The morphs exploit the same open-loop pull as the redaction reveal: you watch until the shape finishes becoming.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> MRT ping-pong at 512×512 RGBA32F (position + velocity); forces per frame: spring 12 toward the target shape, Bridson curl noise 0.9 (divergence-free — swirls, never clumps), pointer repulsor with Gaussian falloff (radius 1.4 world units), click impulse ×6 decaying at 0.9/frame; velocity damping 0.93, speed clamp 3; color ramps violet → green by speed with depth fade; DPR capped at 1.75, simulation halves on coarse-pointer devices (256² = 65k).</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> the simulation runs 200 warm-up steps invisibly, renders one settled frame, and stops — shape buttons still work but swap as stills. No WebGL2/float-buffer support → static message, no broken canvas.</p>
+</aside>
+
+<div class="title" aria-hidden="false">
+  <p class="kicker">Attention Lab · Volume II</p>
+  <h1>262,144 points<br>that look back</h1>
+  <p>Curl-noise flow, spring targets, and your cursor as a force of nature.</p>
+</div>
+
+<div class="shapes" role="group" aria-label="Particle shape">
+  <button class="shape-btn sel" data-shape="0">◦ Nebula sphere</button>
+  <button class="shape-btn" data-shape="1">✦ LOOK</button>
+  <button class="shape-btn" data-shape="2">∞ Torus knot</button>
+</div>
+
+<footer class="hint">Drag through the field — click to detonate</footer>
+
+<script>
+// ---------- about panel ----------
+const infoBtn = document.querySelector('.chrome-info');
+const aboutPanel = document.getElementById('about');
+infoBtn.addEventListener('click', () => {
+  const open = aboutPanel.hidden;
+  aboutPanel.hidden = !open;
+  infoBtn.setAttribute('aria-expanded', String(open));
+});
+
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const coarse = matchMedia('(pointer: coarse)').matches;
+
+// ---------- WebGL2 setup ----------
+const canvas = document.getElementById('gl');
+const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, powerPreference: 'high-performance' });
+const extCBF = gl && gl.getExtension('EXT_color_buffer_float');
+
+if (!gl || !extCBF) {
+  canvas.remove();
+  document.querySelector('.shapes').remove();
+  document.querySelector('.hint').remove();
+  const d = document.createElement('div');
+  d.className = 'fallback';
+  d.innerHTML = '<p><b>This piece needs WebGL2 with float render targets.</b><br>Your browser or GPU declined — the other 16 concepts run everywhere.</p>';
+  document.body.appendChild(d);
+} else {
+  main();
+}
+
+function main() {
+  const SIZE = coarse ? 256 : 512;          // sim texture side → SIZE² particles
+  const COUNT = SIZE * SIZE;
+  const DPR = Math.min(devicePixelRatio || 1, 1.75);
+
+  // ---------- tiny mat4 ----------
+  const M = {
+    persp(fov, asp, n, f) {
+      const t = 1 / Math.tan(fov / 2), d = 1 / (n - f);
+      return [t / asp, 0, 0, 0, 0, t, 0, 0, 0, 0, (f + n) * d, -1, 0, 0, 2 * f * n * d, 0];
+    },
+    lookAt(eye, c) {
+      let zx = eye[0] - c[0], zy = eye[1] - c[1], zz = eye[2] - c[2];
+      let zl = Math.hypot(zx, zy, zz); zx /= zl; zy /= zl; zz /= zl;
+      let xx = zz, xy = 0, xz = -zx;            // x = up × z, up = (0,1,0)
+      let xl = Math.hypot(xx, xy, xz) || 1; xx /= xl; xz /= xl;
+      const yx = zy * xz - zz * xy, yy = zz * xx - zx * xz, yz = zx * xy - zy * xx;
+      return [xx, yx, zx, 0, xy, yy, zy, 0, xz, yz, zz, 0,
+              -(xx * eye[0] + xy * eye[1] + xz * eye[2]),
+              -(yx * eye[0] + yy * eye[1] + yz * eye[2]),
+              -(zx * eye[0] + zy * eye[1] + zz * eye[2]), 1];
+    },
+    mul(a, b) {
+      const o = new Array(16);
+      for (let c = 0; c < 4; c++) for (let r = 0; r < 4; r++)
+        o[c * 4 + r] = a[r] * b[c * 4] + a[4 + r] * b[c * 4 + 1] + a[8 + r] * b[c * 4 + 2] + a[12 + r] * b[c * 4 + 3];
+      return o;
+    },
+  };
+
+  // ---------- shaders ----------
+  const QUAD_VS = `#version 300 es
+  void main() {
+    vec2 p = vec2(gl_VertexID == 1 ? 3.0 : -1.0, gl_VertexID == 2 ? 3.0 : -1.0);
+    gl_Position = vec4(p, 0.0, 1.0);
+  }`;
+
+  // simulation: integrate curl noise + spring-to-target + pointer force
+  const SIM_FS = `#version 300 es
+  precision highp float;
+  uniform sampler2D uPos, uVel, uTarget;
+  uniform vec3 uMouse;
+  uniform float uMousePow, uDt, uTime, uNoiseAmt, uSpring;
+  layout(location = 0) out vec4 oPos;
+  layout(location = 1) out vec4 oVel;
+
+  // --- 3D simplex noise: (C) 2011 Ashima Arts / stegu, MIT (canonical transcription) ---
+  vec3 mod289(vec3 x){ return x - floor(x * (1.0/289.0)) * 289.0; }
+  vec4 mod289(vec4 x){ return x - floor(x * (1.0/289.0)) * 289.0; }
+  vec4 permute(vec4 x){ return mod289(((x*34.0)+10.0)*x); }
+  vec4 taylorInvSqrt(vec4 r){ return 1.79284291400159 - 0.85373472095314 * r; }
+  float snoise(vec3 v){
+    const vec2 C = vec2(1.0/6.0, 1.0/3.0);
+    const vec4 D = vec4(0.0, 0.5, 1.0, 2.0);
+    vec3 i = floor(v + dot(v, C.yyy));
+    vec3 x0 = v - i + dot(i, C.xxx);
+    vec3 g = step(x0.yzx, x0.xyz);
+    vec3 l = 1.0 - g;
+    vec3 i1 = min(g.xyz, l.zxy);
+    vec3 i2 = max(g.xyz, l.zxy);
+    vec3 x1 = x0 - i1 + C.xxx;
+    vec3 x2 = x0 - i2 + C.yyy;
+    vec3 x3 = x0 - D.yyy;
+    i = mod289(i);
+    vec4 p = permute(permute(permute(i.z + vec4(0.0, i1.z, i2.z, 1.0))
+            + i.y + vec4(0.0, i1.y, i2.y, 1.0)) + i.x + vec4(0.0, i1.x, i2.x, 1.0));
+    float n_ = 0.142857142857;
+    vec3 ns = n_ * D.wyz - D.xzx;
+    vec4 j = p - 49.0 * floor(p * ns.z * ns.z);
+    vec4 x_ = floor(j * ns.z);
+    vec4 y_ = floor(j - 7.0 * x_);
+    vec4 x = x_ * ns.x + ns.yyyy;
+    vec4 y = y_ * ns.x + ns.yyyy;
+    vec4 h = 1.0 - abs(x) - abs(y);
+    vec4 b0 = vec4(x.xy, y.xy);
+    vec4 b1 = vec4(x.zw, y.zw);
+    vec4 s0 = floor(b0) * 2.0 + 1.0;
+    vec4 s1 = floor(b1) * 2.0 + 1.0;
+    vec4 sh = -step(h, vec4(0.0));
+    vec4 a0 = b0.xzyw + s0.xzyw * sh.xxyy;
+    vec4 a1 = b1.xzyw + s1.xzyw * sh.zzww;
+    vec3 p0 = vec3(a0.xy, h.x);
+    vec3 p1 = vec3(a0.zw, h.y);
+    vec3 p2 = vec3(a1.xy, h.z);
+    vec3 p3 = vec3(a1.zw, h.w);
+    vec4 norm = taylorInvSqrt(vec4(dot(p0,p0), dot(p1,p1), dot(p2,p2), dot(p3,p3)));
+    p0 *= norm.x; p1 *= norm.y; p2 *= norm.z; p3 *= norm.w;
+    vec4 m = max(0.5 - vec4(dot(x0,x0), dot(x1,x1), dot(x2,x2), dot(x3,x3)), 0.0);
+    m = m * m;
+    return 105.0 * dot(m*m, vec4(dot(p0,x0), dot(p1,x1), dot(p2,x2), dot(p3,x3)));
+  }
+  // --- Bridson curl noise: v = curl(psi) is divergence-free — swirls, never clumps ---
+  vec3 snoiseVec3(vec3 x) {
+    return vec3(snoise(x),
+                snoise(vec3(x.y - 19.1, x.z + 33.4, x.x + 47.2)),
+                snoise(vec3(x.z + 74.2, x.x - 124.5, x.y + 99.4)));
+  }
+  vec3 curl(vec3 p) {
+    const float e = 0.1;
+    p += vec3(0.0, uTime * 0.05, uTime * 0.03);
+    vec3 dx = vec3(e, 0.0, 0.0), dy = vec3(0.0, e, 0.0), dz = vec3(0.0, 0.0, e);
+    vec3 px0 = snoiseVec3(p - dx), px1 = snoiseVec3(p + dx);
+    vec3 py0 = snoiseVec3(p - dy), py1 = snoiseVec3(p + dy);
+    vec3 pz0 = snoiseVec3(p - dz), pz1 = snoiseVec3(p + dz);
+    float x = (py1.z - py0.z) - (pz1.y - pz0.y);
+    float y = (pz1.x - pz0.x) - (px1.z - px0.z);
+    float z = (px1.y - px0.y) - (py1.x - py0.x);
+    return vec3(x, y, z) / (2.0 * e);
+  }
+
+  void main() {
+    ivec2 uv = ivec2(gl_FragCoord.xy);
+    vec3 pos = texelFetch(uPos, uv, 0).xyz;
+    vec3 vel = texelFetch(uVel, uv, 0).xyz;
+    vec3 tgt = texelFetch(uTarget, uv, 0).xyz;
+
+    vec3 acc = (tgt - pos) * uSpring;                 // spring to shape
+    acc += curl(pos * 0.55) * uNoiseAmt;              // organic drift
+
+    vec3 dm = pos - uMouse;                           // pointer force (repel / detonate)
+    float d2 = dot(dm, dm);
+    acc += normalize(dm + 1e-4) * uMousePow * exp(-d2 / 1.96);
+
+    vel = (vel + acc * uDt) * 0.93;
+    float sp = length(vel);
+    if (sp > 3.0) vel *= 3.0 / sp;   // speed clamp: no pointer-force rockets
+    pos += vel * uDt;
+
+    oPos = vec4(pos, 1.0);
+    oVel = vec4(vel, 1.0);
+  }`;
+
+  const DRAW_VS = `#version 300 es
+  precision highp float;
+  uniform sampler2D uPos, uVel;
+  uniform mat4 uPV;
+  uniform float uSizeBase;
+  out float vSpeed;
+  out float vDepth;
+  void main() {
+    ivec2 uv = ivec2(gl_VertexID % ${SIZE}, gl_VertexID / ${SIZE});
+    vec3 p = texelFetch(uPos, uv, 0).xyz;
+    vSpeed = length(texelFetch(uVel, uv, 0).xyz);
+    vec4 clip = uPV * vec4(p, 1.0);
+    gl_Position = clip;
+    vDepth = clip.w;
+    gl_PointSize = clamp(uSizeBase / clip.w, 0.75, 5.0);
+  }`;
+
+  const DRAW_FS = `#version 300 es
+  precision highp float;
+  in float vSpeed;
+  in float vDepth;
+  out vec4 o;
+  void main() {
+    vec2 c = gl_PointCoord - 0.5;
+    float a = smoothstep(0.25, 0.0, dot(c, c));       // soft round sprite
+    vec3 slow = vec3(0.486, 0.361, 1.0);              // violet
+    vec3 fast = vec3(0.161, 0.902, 0.655);            // signal green
+    vec3 hot  = vec3(1.0, 0.302, 0.427);              // detonation coral
+    vec3 col = mix(slow, fast, clamp(vSpeed * 0.9, 0.0, 1.0));
+    col = mix(col, hot, clamp(vSpeed * 0.35 - 0.55, 0.0, 1.0));
+    float depthFade = clamp(2.6 / vDepth, 0.25, 1.0);
+    o = vec4(col * a * depthFade * 0.45, 1.0);        // additive: color carries alpha
+  }`;
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  function program(vs, fs) {
+    const p = gl.createProgram();
+    gl.attachShader(p, compile(gl.VERTEX_SHADER, vs));
+    gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    return p;
+  }
+  const simProg = program(QUAD_VS, SIM_FS);
+  const drawProg = program(DRAW_VS, DRAW_FS);
+
+  // ---------- textures & FBOs ----------
+  function dataTex(data) {
+    const t = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, SIZE, SIZE, 0, gl.RGBA, gl.FLOAT, data);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    return t;
+  }
+  function simTarget() {
+    const pos = dataTex(null), vel = dataTex(null);
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, pos, 0);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT1, gl.TEXTURE_2D, vel, 0);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0, gl.COLOR_ATTACHMENT1]);
+    return { fb, pos, vel };
+  }
+
+  // initial cloud: loose sphere shell with jitter
+  const init = new Float32Array(COUNT * 4);
+  for (let i = 0; i < COUNT; i++) {
+    const r = 1.4 + Math.random() * 0.5;
+    const th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
+    init[i * 4] = r * Math.sin(ph) * Math.cos(th);
+    init[i * 4 + 1] = r * Math.cos(ph);
+    init[i * 4 + 2] = r * Math.sin(ph) * Math.sin(th);
+    init[i * 4 + 3] = 1;
+  }
+  let A = simTarget(), B = simTarget();
+  gl.bindTexture(gl.TEXTURE_2D, A.pos);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SIZE, SIZE, gl.RGBA, gl.FLOAT, init);
+  gl.bindTexture(gl.TEXTURE_2D, A.vel);
+  gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SIZE, SIZE, gl.RGBA, gl.FLOAT, new Float32Array(COUNT * 4));
+
+  // ---------- target shapes ----------
+  function sphereTargets() {
+    const d = new Float32Array(COUNT * 4);
+    const GA = Math.PI * (3 - Math.sqrt(5));
+    for (let i = 0; i < COUNT; i++) {
+      const y = 1 - (i / (COUNT - 1)) * 2;
+      const rad = Math.sqrt(1 - y * y);
+      const th = GA * i;
+      const rr = 1.35 + 0.05 * Math.sin(i * 0.37);
+      d[i * 4] = Math.cos(th) * rad * rr;
+      d[i * 4 + 1] = y * rr;
+      d[i * 4 + 2] = Math.sin(th) * rad * rr;
+      d[i * 4 + 3] = 1;
+    }
+    return d;
+  }
+  function torusKnotTargets() {
+    const d = new Float32Array(COUNT * 4);
+    const P = 2, Q = 3;
+    for (let i = 0; i < COUNT; i++) {
+      const t = (i / COUNT) * Math.PI * 2 * 1.0 + (i % 97) * 0.000021;
+      const u = t * P;
+      const r = 0.62 * (2 + Math.cos(Q * t));
+      const jitter = 0.05;
+      d[i * 4] = r * Math.cos(u) * 0.62 + (Math.random() - 0.5) * jitter;
+      d[i * 4 + 1] = 0.62 * Math.sin(Q * t) * 0.85 + (Math.random() - 0.5) * jitter;
+      d[i * 4 + 2] = r * Math.sin(u) * 0.62 + (Math.random() - 0.5) * jitter;
+      d[i * 4 + 3] = 1;
+    }
+    return d;
+  }
+  function textTargets(word) {
+    const cw = 640, ch = 256;
+    const c2 = document.createElement('canvas');
+    c2.width = cw; c2.height = ch;
+    const x = c2.getContext('2d');
+    x.fillStyle = '#000'; x.fillRect(0, 0, cw, ch);
+    x.fillStyle = '#fff';
+    x.font = '900 190px ' + getComputedStyle(document.body).fontFamily;
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText(word, cw / 2, ch / 2 + 8);
+    const img = x.getImageData(0, 0, cw, ch).data;
+    const pts = [];
+    for (let yy = 0; yy < ch; yy += 2) for (let xx = 0; xx < cw; xx += 2) {
+      if (img[(yy * cw + xx) * 4] > 128) pts.push([xx, yy]);
+    }
+    const d = new Float32Array(COUNT * 4);
+    for (let i = 0; i < COUNT; i++) {
+      const [px, py] = pts[(Math.random() * pts.length) | 0];
+      d[i * 4] = ((px / cw) - 0.5) * 4.4 + (Math.random() - 0.5) * 0.03;
+      d[i * 4 + 1] = (0.5 - (py / ch)) * 1.76 + (Math.random() - 0.5) * 0.03;
+      d[i * 4 + 2] = (Math.random() - 0.5) * 0.24;
+      d[i * 4 + 3] = 1;
+    }
+    return d;
+  }
+  const SHAPES = [sphereTargets(), textTargets('LOOK'), torusKnotTargets()];
+  const targetTex = dataTex(SHAPES[0]);
+  function setShape(i) {
+    gl.bindTexture(gl.TEXTURE_2D, targetTex);
+    gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, SIZE, SIZE, gl.RGBA, gl.FLOAT, SHAPES[i]);
+  }
+
+  // ---------- uniforms ----------
+  const su = n => gl.getUniformLocation(simProg, n);
+  const du = n => gl.getUniformLocation(drawProg, n);
+
+  // ---------- state ----------
+  let mouseWorld = [999, 999, 0], mousePow = 0, targetPow = 0;
+  // per-shape feel: [noise amount, orbit speed] — text holds still and calm to stay readable
+  const SHAPE_TUNE = [[0.9, 1], [0.07, 0], [0.75, 1]];
+  let noiseAmt = 0.9, orbitAngle = 0.6, orbitSpeed = 0.05;
+  let camA = 0, camB = 0, camTA = 0, camTB = 0;
+  let time = 0, last = performance.now();
+  let visible = true, hidden = false;
+  new IntersectionObserver(([e]) => visible = e.isIntersecting).observe(canvas);
+  document.addEventListener('visibilitychange', () => hidden = document.hidden);
+
+  function resize() {
+    canvas.width = Math.round(innerWidth * DPR);
+    canvas.height = Math.round(innerHeight * DPR);
+  }
+  addEventListener('resize', resize);
+  resize();
+
+  // pointer → world plane z=0 (camera at radius R orbiting)
+  let proj, view, pv, eye;
+  function updateCamera() {
+    const R = 4.6;
+    camA += (camTA - camA) * 0.05;
+    camB += (camTB - camB) * 0.05;
+    eye = [
+      Math.sin(orbitAngle + camA * 0.5) * R,
+      0.6 + camB * 1.2,
+      Math.cos(orbitAngle + camA * 0.5) * R,
+    ];
+    proj = M.persp(0.9, canvas.width / canvas.height, 0.1, 40);
+    view = M.lookAt(eye, [0, 0, 0]);
+    pv = M.mul(proj, view);
+  }
+  function pointerToWorld(e) {
+    // ray-plane: intersect the camera ray with the plane through origin facing the camera
+    const nx = (e.clientX / innerWidth) * 2 - 1;
+    const ny = 1 - (e.clientY / innerHeight) * 2;
+    // build ray in camera space, transform by inverse view basis (rotation transpose + eye)
+    const t = Math.tan(0.45), asp = canvas.width / canvas.height;
+    const dirCam = [nx * t * asp, ny * t, -1];
+    // view rows are the camera basis
+    const r = view;
+    const dir = [
+      r[0] * dirCam[0] + r[1] * dirCam[1] + r[2] * dirCam[2],
+      r[4] * dirCam[0] + r[5] * dirCam[1] + r[6] * dirCam[2],
+      r[8] * dirCam[0] + r[9] * dirCam[1] + r[10] * dirCam[2],
+    ];
+    // plane through origin with normal = normalize(eye) (always faces camera)
+    const n = eye.map(v => v / Math.hypot(...eye));
+    const denom = n[0] * dir[0] + n[1] * dir[1] + n[2] * dir[2];
+    if (Math.abs(denom) < 1e-4) return;
+    const tt = -(n[0] * eye[0] + n[1] * eye[1] + n[2] * eye[2]) / denom;
+    mouseWorld = [eye[0] + dir[0] * tt, eye[1] + dir[1] * tt, eye[2] + dir[2] * tt];
+  }
+  addEventListener('pointermove', e => {
+    camTA = (e.clientX / innerWidth - 0.5) * 0.8;
+    camTB = (0.5 - e.clientY / innerHeight) * 0.8;
+    pointerToWorld(e);
+    targetPow = 5.2;
+  }, { passive: true });
+  addEventListener('pointerleave', () => { targetPow = 0; });
+  addEventListener('pointerdown', e => {
+    pointerToWorld(e);
+    mousePow = 34;                                    // detonation impulse
+  });
+
+  // shape switching + auto-cycle
+  const btns = [...document.querySelectorAll('.shape-btn')];
+  let shape = 0, autoTimer = null;
+  function pick(i, user) {
+    shape = i;
+    btns.forEach((b, j) => b.classList.toggle('sel', j === i));
+    setShape(i);
+    if (reduceMotion) settleStill();
+    if (user) { clearInterval(autoTimer); autoTimer = null; }
+  }
+  btns.forEach((b, i) => b.addEventListener('click', () => pick(i, true)));
+  if (!reduceMotion) autoTimer = setInterval(() => pick((shape + 1) % 3, false), 9000);
+
+  // ---------- passes ----------
+  function simPass(dt) {
+    gl.useProgram(simProg);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, B.fb);
+    gl.viewport(0, 0, SIZE, SIZE);
+    gl.disable(gl.BLEND);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, A.pos);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, A.vel);
+    gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, targetTex);
+    gl.uniform1i(su('uPos'), 0);
+    gl.uniform1i(su('uVel'), 1);
+    gl.uniform1i(su('uTarget'), 2);
+    gl.uniform3fv(su('uMouse'), mouseWorld);
+    gl.uniform1f(su('uMousePow'), mousePow + targetPow);
+    gl.uniform1f(su('uDt'), Math.min(dt, 0.033));
+    gl.uniform1f(su('uTime'), time);
+    gl.uniform1f(su('uNoiseAmt'), noiseAmt);
+    gl.uniform1f(su('uSpring'), 12.0);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    const tmp = A; A = B; B = tmp;
+    mousePow *= 0.9;
+    targetPow *= 0.94;
+  }
+  function drawPass() {
+    gl.useProgram(drawProg);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.clearColor(0.031, 0.031, 0.051, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE);                     // additive
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, A.pos);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, A.vel);
+    gl.uniform1i(du('uPos'), 0);
+    gl.uniform1i(du('uVel'), 1);
+    gl.uniformMatrix4fv(du('uPV'), false, pv);
+    gl.uniform1f(du('uSizeBase'), 7.5 * DPR);
+    gl.drawArrays(gl.POINTS, 0, COUNT);
+  }
+
+  // reduced-motion: warm up invisibly, render one still
+  function settleStill() {
+    noiseAmt = SHAPE_TUNE[shape][0] * 0.5;
+    orbitAngle = 0.35;
+    for (let i = 0; i < 200; i++) { time += 1 / 60; simPass(1 / 60); }
+    updateCamera();
+    drawPass();
+  }
+
+  if (reduceMotion) {
+    settleStill();
+  } else {
+    (function frame(now) {
+      requestAnimationFrame(frame);
+      if (!visible || hidden) { last = now; return; }
+      const dt = (now - last) / 1000;
+      last = now;
+      time += dt;
+      // ease toward the active shape: noise level and orbit behavior
+      const tune = SHAPE_TUNE[shape];
+      noiseAmt += (tune[0] - noiseAmt) * 0.03;
+      orbitSpeed += (tune[1] * 0.05 - orbitSpeed) * 0.03;
+      orbitAngle += orbitSpeed * dt;
+      if (tune[1] === 0) {
+        // settle to the nearest frontal view so the word reads face-on
+        const TAU = Math.PI * 2;
+        const home = Math.round(orbitAngle / TAU) * TAU;
+        orbitAngle += (home - orbitAngle) * 0.04;
+      }
+      updateCamera();
+      simPass(dt);
+      drawPass();
+    })(performance.now());
+  }
+}
+</script>
+</body>
+</html>

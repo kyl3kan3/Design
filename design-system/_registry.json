@@ -318,5 +318,35 @@
       "height": 800
     },
     "subtitle": "A full landing page on the Attention Lab tokens and components"
+  },
+  {
+    "name": "Particle Field",
+    "path": "concepts/17-particle-field.html",
+    "group": "Volume II · WebGL",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "262k GPGPU particles · curl noise · shape morphs · raw WebGL2"
+  },
+  {
+    "name": "Liquid Raymarch",
+    "path": "concepts/18-liquid-hero.html",
+    "group": "Volume II · WebGL",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "SDF metaballs, sphere-traced · soft shadows, AO, fresnel, ACES"
+  },
+  {
+    "name": "Flowmap Type",
+    "path": "concepts/19-flowmap-type.html",
+    "group": "Volume II · WebGL",
+    "viewport": {
+      "width": 1280,
+      "height": 800
+    },
+    "subtitle": "Self-advecting fluid field smears poster type along the cursor wake"
   }
 ]

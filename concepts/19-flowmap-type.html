@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>19 — Flowmap Type · Attention Lab</title>
+<style>
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --dur-1: 150ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px; padding: 14px 20px 30px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(8, 8, 13, 0.92), rgba(8, 8, 13, 0.6) 60%, rgba(8, 8, 13, 0));
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; padding: 12px 10px; margin: -12px -10px; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 10px 16px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 16px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none;
+    background: rgba(8, 8, 13, 0.78); backdrop-filter: blur(8px);
+    border: 1px solid rgba(244, 243, 247, 0.07); border-radius: 999px;
+    padding: 9px 18px; text-align: center; max-width: min(92vw, 560px);
+  }
+
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  .fallback {
+    position: fixed; inset: 0; display: grid; place-items: center; text-align: center;
+    padding: 40px; color: var(--ink-dim); font-size: 15px; line-height: 1.7;
+  }
+  .fallback b { color: var(--ink); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hint { display: none; } /* the fluid is still in this mode */
+  }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">19</span><span class="chrome-name">Flowmap Type</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>Fluid flowmap over typography — raw WebGL2</h2>
+  <p class="about-what">A live fluid velocity field follows your cursor: each move splats momentum into a half-float simulation texture that advects itself forward. The giant poster type samples through that field — displaced, smeared, and chromatically split wherever you've stirred, healing as the flow decays.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> the flowmap cursor trail is the single most copied signature of award-winning WebGL sites — because it gives the page a memory. The type doesn't just react under the cursor; it remembers the path your hand took and lets it dissolve slowly, which reads as material, not effect.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> two RG-half-float ping-pong buffers at 1/8 resolution; per frame: semi-Lagrangian self-advection, Gaussian splat of pointer velocity (radius scales with speed), dissipation 0.975. Composite pass displaces the poster texture by the field (strength 0.34, field clamped at 0.30), samples R/G/B at ±35% of the offset for chromatic fringe, and tints the wake violet→green by flow direction. Poster is a 2048px offscreen 2D canvas re-rendered on resize.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> the simulation never runs — the poster renders undistorted, once. No WebGL2/half-float support → static message.</p>
+</aside>
+
+<footer class="hint">Stir the letters — they remember your path</footer>
+
+<script>
+// ---------- about panel ----------
+const infoBtn = document.querySelector('.chrome-info');
+const aboutPanel = document.getElementById('about');
+infoBtn.addEventListener('click', () => {
+  const open = aboutPanel.hidden;
+  aboutPanel.hidden = !open;
+  infoBtn.setAttribute('aria-expanded', String(open));
+});
+
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const canvas = document.getElementById('gl');
+const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, powerPreference: 'high-performance' });
+const okFloat = gl && (gl.getExtension('EXT_color_buffer_float') || gl.getExtension('EXT_color_buffer_half_float'));
+
+if (!gl || !okFloat) {
+  canvas.remove();
+  document.querySelector('.hint')?.remove();
+  const d = document.createElement('div');
+  d.className = 'fallback';
+  d.innerHTML = '<p><b>This piece needs WebGL2 with half-float render targets.</b><br>Your browser declined — the other concepts run everywhere.</p>';
+  document.body.appendChild(d);
+} else {
+  main();
+}
+
+function main() {
+  const DPR = Math.min(devicePixelRatio || 1, 2);
+
+  const QUAD_VS = `#version 300 es
+  out vec2 vUv;
+  void main() {
+    vec2 p = vec2(gl_VertexID == 1 ? 3.0 : -1.0, gl_VertexID == 2 ? 3.0 : -1.0);
+    vUv = p * 0.5 + 0.5;
+    gl_Position = vec4(p, 0.0, 1.0);
+  }`;
+
+  // fluid step: self-advection + pointer splat + dissipation (flowmap — no pressure solve)
+  const SIM_FS = `#version 300 es
+  precision highp float;
+  in vec2 vUv;
+  uniform sampler2D uField;
+  uniform vec2 uPointer;      // uv
+  uniform vec2 uPointerVel;   // uv/s
+  uniform float uDt;
+  uniform float uAspect;
+  out vec4 o;
+  void main() {
+    // semi-Lagrangian advection: look back along the local flow
+    vec2 vel = texture(uField, vUv).rg;
+    vec2 back = vUv - vel * uDt * 0.7;
+    vec2 f = texture(uField, back).rg;
+
+    // splat pointer momentum with Gaussian falloff (aspect-corrected)
+    vec2 d = vUv - uPointer;
+    d.x *= uAspect;
+    float speed = length(uPointerVel);
+    float radius = 0.045 + min(speed * 0.012, 0.06);
+    float g = exp(-dot(d, d) / (radius * radius));
+    f += uPointerVel * g * 0.032;
+
+    f *= 0.975;                                  // dissipation: the wake heals
+    float m = length(f);
+    if (m > 0.30) f *= 0.30 / m;                 // clamp: strong stirs smear, never wrap
+    if (length(f) < 0.00008) f = vec2(0.0);      // denormal floor: field truly rests
+    o = vec4(f, 0.0, 1.0);
+  }`;
+
+  // composite: displace + chromatic split the poster by the flow field
+  const DRAW_FS = `#version 300 es
+  precision highp float;
+  in vec2 vUv;
+  uniform sampler2D uField;
+  uniform sampler2D uPoster;
+  out vec4 o;
+  void main() {
+    vec2 flow = texture(uField, vUv).rg;
+    vec2 off = flow * 0.34;
+    float mag = length(flow);
+
+    // chromatic fringe: R and B sample slightly further along the flow
+    float r = texture(uPoster, vUv - off * 1.35).r;
+    float g = texture(uPoster, vUv - off).g;
+    float b = texture(uPoster, vUv - off * 0.65).b;
+    vec3 col = vec3(r, g, b);
+
+    // the wake itself glows faintly, tinted by flow direction
+    vec3 tintA = vec3(0.486, 0.361, 1.0);   // violet
+    vec3 tintB = vec3(0.161, 0.902, 0.655); // green
+    float dir = 0.5 + 0.5 * (flow.x + flow.y);
+    col += mix(tintA, tintB, clamp(dir, 0.0, 1.0)) * min(mag * 1.4, 0.5);
+
+    o = vec4(col, 1.0);
+  }`;
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  function program(fs) {
+    const p = gl.createProgram();
+    gl.attachShader(p, compile(gl.VERTEX_SHADER, QUAD_VS));
+    gl.attachShader(p, compile(gl.FRAGMENT_SHADER, fs));
+    gl.linkProgram(p);
+    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+    return p;
+  }
+  const simProg = program(SIM_FS);
+  const drawProg = program(DRAW_FS);
+  gl.bindVertexArray(gl.createVertexArray());
+
+  // ---------- fluid buffers (1/8 res, RG16F, LINEAR) ----------
+  let simW = 0, simH = 0, fieldA = null, fieldB = null;
+  function fieldSlot() {
+    const t = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, t);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG16F, simW, simH, 0, gl.RG, gl.HALF_FLOAT, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    const fb = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, t, 0);
+    return { t, fb };
+  }
+
+  // ---------- poster texture (offscreen 2D canvas) ----------
+  const posterTex = gl.createTexture();
+  function renderPoster() {
+    const w = Math.min(2048, Math.round(innerWidth * DPR));
+    const h = Math.round(w * innerHeight / innerWidth);
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const x = c.getContext('2d');
+
+    x.fillStyle = '#08080d';
+    x.fillRect(0, 0, w, h);
+
+    const sans = getComputedStyle(document.body).getPropertyValue('--font-sans');
+    const mono = getComputedStyle(document.body).getPropertyValue('--font-mono');
+
+    // kicker
+    x.fillStyle = '#29e6a7';
+    x.font = `600 ${Math.round(w * 0.011)}px ${mono}`;
+    x.textBaseline = 'alphabetic';
+    const pad = w * 0.05;
+    x.fillText('ATTENTION LAB · VOLUME II · POSTER 019', pad, h * 0.14);
+
+    // display lines
+    const lines = ['ATTENTION', 'IS THE', 'MEDIUM'];
+    const size = Math.min(w * 0.155, h * 0.26);
+    x.font = `900 ${size}px ${sans}`;
+    x.textBaseline = 'middle';
+    const totalH = size * 0.94 * lines.length;
+    let y = h / 2 - totalH / 2 + size * 0.47;
+    for (let i = 0; i < lines.length; i++) {
+      if (i === 1) {
+        // middle line: outline
+        x.strokeStyle = '#f4f3f7';
+        x.lineWidth = Math.max(2, size * 0.016);
+        x.strokeText(lines[i], pad, y);
+      } else {
+        x.fillStyle = i === 2 ? '#7c5cff' : '#f4f3f7';
+        x.fillText(lines[i], pad, y);
+      }
+      y += size * 0.94;
+    }
+
+    // footer rule + credits
+    x.fillStyle = 'rgba(244,243,247,0.35)';
+    x.fillRect(pad, h * 0.86, w * 0.28, Math.max(1, w * 0.0012));
+    x.font = `500 ${Math.round(w * 0.010)}px ${mono}`;
+    x.fillStyle = '#8f8ea0';
+    x.fillText('STIRRED, NOT REFRESHED — THE FIELD DECAYS AT 0.975 / FRAME', pad, h * 0.895);
+
+    gl.bindTexture(gl.TEXTURE_2D, posterTex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, c);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  }
+
+  function resize() {
+    canvas.width = Math.round(innerWidth * DPR);
+    canvas.height = Math.round(innerHeight * DPR);
+    simW = Math.max(160, Math.round(canvas.width / 8));
+    simH = Math.max(90, Math.round(canvas.height / 8));
+    fieldA = fieldSlot();
+    fieldB = fieldSlot();
+    renderPoster();
+  }
+  addEventListener('resize', resize);
+  resize();
+
+  // ---------- pointer state ----------
+  const ptr = { x: 0.5, y: 0.5, vx: 0, vy: 0, tx: 0.5, ty: 0.5 };
+  addEventListener('pointermove', e => {
+    ptr.tx = e.clientX / innerWidth;
+    ptr.ty = 1 - e.clientY / innerHeight;
+  }, { passive: true });
+  addEventListener('pointerdown', e => {
+    // a click is a slap: burst outward
+    ptr.vx += (Math.random() - 0.5) * 4;
+    ptr.vy += (Math.random() - 0.5) * 4;
+  });
+
+  const su = n => gl.getUniformLocation(simProg, n);
+  const du = n => gl.getUniformLocation(drawProg, n);
+
+  function drawComposite() {
+    gl.useProgram(drawProg);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, fieldA.t);
+    gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, posterTex);
+    gl.uniform1i(du('uField'), 0);
+    gl.uniform1i(du('uPoster'), 1);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  if (reduceMotion) {
+    drawComposite();          // undistorted poster, once
+    addEventListener('resize', drawComposite);
+  } else {
+    let visible = true;
+    new IntersectionObserver(([e]) => visible = e.isIntersecting).observe(canvas);
+    let last = performance.now();
+    (function frame(now) {
+      requestAnimationFrame(frame);
+      if (!visible || document.hidden) { last = now; return; }
+      const dt = Math.min((now - last) / 1000, 1 / 30);
+      last = now;
+
+      // smoothed pointer + velocity in uv space
+      const px = ptr.x, py = ptr.y;
+      ptr.x += (ptr.tx - ptr.x) * 0.35;
+      ptr.y += (ptr.ty - ptr.y) * 0.35;
+      const ivx = (ptr.x - px) / Math.max(dt, 1e-4);
+      const ivy = (ptr.y - py) / Math.max(dt, 1e-4);
+      ptr.vx += (ivx - ptr.vx) * 0.3;
+      ptr.vy += (ivy - ptr.vy) * 0.3;
+
+      // fluid step into B, reading A
+      gl.useProgram(simProg);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fieldB.fb);
+      gl.viewport(0, 0, simW, simH);
+      gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, fieldA.t);
+      gl.uniform1i(su('uField'), 0);
+      gl.uniform2f(su('uPointer'), ptr.x, ptr.y);
+      gl.uniform2f(su('uPointerVel'), ptr.vx, ptr.vy);
+      gl.uniform1f(su('uDt'), dt);
+      gl.uniform1f(su('uAspect'), canvas.width / canvas.height);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      [fieldA, fieldB] = [fieldB, fieldA];
+
+      drawComposite();
+    })(performance.now());
+  }
+}
+</script>
+</body>
+</html>

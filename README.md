@@ -10,12 +10,12 @@ Two deliverables live here:
    a synthesis of attention psychology, motion-design craft rules, 2025–26 trends, signature
    patterns from award-winning sites, the modern CSS/JS animation stack, and the accessibility
    and performance constraints that keep motion honest.
-2. **Concepts** — [`concepts/`](concepts/): fifteen interactive demos, one pattern family each.
+2. **Concepts** — [`concepts/`](concepts/): nineteen interactive demos, one pattern family each — including a raw-WebGL2 Volume II (GPGPU particles, raymarching, fluid distortion).
    Every demo is a **single self-contained HTML file** — vanilla CSS/JS, system fonts, inline
    SVG, zero dependencies, zero network requests. Open any file in a browser, or start at
    [`concepts/index.html`](concepts/index.html).
 
-## The fifteen concepts
+## The nineteen concepts
 
 | # | Concept | Pattern family | What it demonstrates |
 |---|---------|----------------|----------------------|
@@ -35,13 +35,17 @@ Two deliverables live here:
 | 14 | [Spring & Easing Lab](concepts/14-easing-lab.html) | Motion craft | Five easing curves raced on one duration; a damped-spring designer emitting native CSS `linear()` |
 | 15 | [Intro Sequence](concepts/15-intro-sequence.html) | Entrance choreography | Preloader counter → staggered curtain wipe → masked hero arrival |
 | 16 | [Applied: Drift Landing](concepts/16-drift-landing.html) | The system, applied | A complete landing page assembled from the system — aurora hero, spotlight bento, counters, magnetic CTA |
+| 17 | [Particle Field](concepts/17-particle-field.html) | WebGL · GPGPU | 262,144 particles simulated in float textures: curl noise, shape morphs (sphere / LOOK / torus knot), pointer forces — raw WebGL2, no libraries |
+| 18 | [Liquid Raymarch](concepts/18-liquid-hero.html) | WebGL · SDF | Five metaballs sphere-traced per pixel with iq's studio rig: soft shadows, AO, fresnel, ACES — a lit surface with zero polygons |
+| 19 | [Flowmap Type](concepts/19-flowmap-type.html) | WebGL · Fluid | A self-advecting fluid field smears and chromatically splits poster typography along the cursor's wake |
 
 Each demo has an **About** panel (top-right) documenting the pattern, the perceptual mechanism
 behind it, the exact timing/easing values used, and its reduced-motion behavior.
 
 ## Shared craft rules
 
-All twelve demos follow the same motion system (see the research doc for sources):
+All nineteen demos follow the same motion system (see the research doc for sources); the
+WebGL pieces additionally follow [`research/award-webgl-techniques.md`](research/award-webgl-techniques.md):
 
 - **Entrances decelerate, exits accelerate** — and exits run faster than entrances.
 - **Micro-feedback in 100–200ms**, standard transitions 250–400ms, hero reveals 600–1000ms.

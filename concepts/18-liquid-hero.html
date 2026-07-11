@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>18 — Liquid Raymarch · Attention Lab</title>
+<style>
+  :root {
+    --bg: #08080d;
+    --bg-elev: #10101a;
+    --ink: #f4f3f7;
+    --ink-dim: #8f8ea0;
+    --accent: #7c5cff;
+    --accent-2: #29e6a7;
+    --hot: #ff4d6d;
+    --line: rgba(244, 243, 247, 0.09);
+    --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --dur-1: 150ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: var(--font-sans); -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  /* ---------- chrome ---------- */
+  .chrome {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 16px; padding: 14px 20px 30px;
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(8, 8, 13, 0.92), rgba(8, 8, 13, 0.6) 60%, rgba(8, 8, 13, 0));
+  }
+  .chrome > * { pointer-events: auto; }
+  .chrome-back { color: var(--ink-dim); text-decoration: none; padding: 12px 10px; margin: -12px -10px; transition: color var(--dur-1) ease; }
+  .chrome-back:hover { color: var(--ink); }
+  .chrome-back:focus-visible, .chrome-info:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .chrome-meta { display: flex; gap: 10px; align-items: baseline; }
+  .chrome-num { color: var(--accent); }
+  .chrome-name { color: var(--ink-dim); text-transform: uppercase; }
+  .chrome-info {
+    margin-left: auto; background: none; border: 1px solid var(--line); border-radius: 999px;
+    color: var(--ink-dim); font: inherit; padding: 10px 16px; cursor: pointer;
+    transition: color var(--dur-1) ease, border-color var(--dur-1) ease;
+  }
+  .chrome-info:hover, .chrome-info[aria-expanded="true"] { color: var(--ink); border-color: var(--ink-dim); }
+  .about {
+    position: fixed; top: 56px; right: 20px; z-index: 49; width: min(360px, calc(100vw - 40px));
+    background: rgba(16, 16, 26, 0.92); backdrop-filter: blur(12px);
+    border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px;
+    font-size: 13.5px; line-height: 1.55; color: var(--ink-dim);
+  }
+  .about h2 { margin: 0 0 8px; font-size: 14px; color: var(--ink); }
+  .about strong { color: var(--ink); font-weight: 600; }
+  .hint {
+    position: fixed; bottom: 16px; left: 50%; translate: -50% 0; z-index: 50;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--ink-dim); pointer-events: none;
+    background: rgba(8, 8, 13, 0.78); backdrop-filter: blur(8px);
+    border: 1px solid rgba(244, 243, 247, 0.07); border-radius: 999px;
+    padding: 9px 18px; text-align: center; max-width: min(92vw, 560px);
+  }
+
+  #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+
+  .title {
+    position: fixed; left: clamp(20px, 5vw, 60px); bottom: clamp(64px, 10vh, 110px); z-index: 10;
+    pointer-events: none;
+  }
+  .title .kicker { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent-2); }
+  .title h1 {
+    margin: 10px 0 0; font-weight: 800; letter-spacing: -0.03em;
+    font-size: clamp(30px, 4.6vw, 56px); line-height: 1.02;
+    text-shadow: 0 2px 30px rgba(5, 5, 12, 0.9);
+  }
+  .title p { margin: 10px 0 0; color: var(--ink-dim); font-size: 14px; max-width: 42ch; }
+
+  .fallback {
+    position: fixed; inset: 0; display: grid; place-items: center; text-align: center;
+    padding: 40px; color: var(--ink-dim); font-size: 15px; line-height: 1.7;
+  }
+  .fallback b { color: var(--ink); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hint { display: none; } /* the liquid is frozen in this mode */
+  }
+</style>
+</head>
+<body>
+<canvas id="gl"></canvas>
+
+<header class="chrome">
+  <a class="chrome-back" href="index.html" aria-label="Back to index">←&nbsp;Index</a>
+  <div class="chrome-meta"><span class="chrome-num">18</span><span class="chrome-name">Liquid Raymarch</span></div>
+  <button class="chrome-info" aria-expanded="false" aria-controls="about">About</button>
+</header>
+
+<aside class="about" id="about" hidden>
+  <h2>Raymarched liquid — SDF metaballs, raw WebGL2</h2>
+  <p class="about-what">A signed-distance scene sphere-traced per pixel in one fragment shader: five metaballs on incommensurate orbits blend through a cubic smooth-minimum, one chases your cursor, and a click sends a merge-pulse through the blend radius. No geometry, no libraries — the surface exists only as math.</p>
+  <p class="about-why"><strong>Why it catches attention:</strong> raymarched liquid is the flagship material of award-tier WebGL (Igloo's ice, Lusion's blobs): light behaves like it does on real gloss — fresnel rim, soft shadows, creamy specular — on a surface that visibly has no polygons. The brain reads “impossible object, physically lit” and stares.</p>
+  <p class="about-craft"><strong>Craft notes:</strong> 100-step sphere trace inside an analytic bounding sphere (most sky pixels never march), t-scaled epsilon 0.0005·t with IGN-jittered ray starts; normalized cubic smin k=0.16 — influence 6k (C2, highlights don't crawl); iq's penumbra soft shadows (w 0.1), 5-tap AO, Schlick fresnel²; three-light studio rig with warm key / cool sky fill / back light, ACES tonemap, gamma, then 1/255 dither. Pointer camera parallax lerps at λ=8; adaptive quality drops render scale 1 → 0.75 → 0.5 if frame time passes 22ms.</p>
+  <p class="about-rm"><strong>Reduced motion:</strong> the simulation freezes at a composed moment and renders exactly one frame; pointer parallax and the chase-blob are disabled. No WebGL2 → static message.</p>
+</aside>
+
+<div class="title">
+  <p class="kicker">Attention Lab · Volume II</p>
+  <h1>Light on a surface<br>that isn't there</h1>
+  <p>Five signed-distance fields, one cursor, zero polygons.</p>
+</div>
+
+<footer class="hint">Move to bend the liquid — click to pulse the merge</footer>
+
+<script>
+// ---------- about panel ----------
+const infoBtn = document.querySelector('.chrome-info');
+const aboutPanel = document.getElementById('about');
+infoBtn.addEventListener('click', () => {
+  const open = aboutPanel.hidden;
+  aboutPanel.hidden = !open;
+  infoBtn.setAttribute('aria-expanded', String(open));
+});
+
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const canvas = document.getElementById('gl');
+const gl = canvas.getContext('webgl2', { antialias: false, alpha: false, depth: false, powerPreference: 'high-performance' });
+
+if (!gl) {
+  canvas.remove();
+  document.querySelector('.hint')?.remove();
+  const d = document.createElement('div');
+  d.className = 'fallback';
+  d.innerHTML = '<p><b>This piece needs WebGL2.</b><br>Your browser declined — the other concepts run everywhere.</p>';
+  document.body.appendChild(d);
+} else {
+  main();
+}
+
+function main() {
+  const VS = `#version 300 es
+  void main() {
+    vec2 p = vec2(gl_VertexID == 1 ? 3.0 : -1.0, gl_VertexID == 2 ? 3.0 : -1.0);
+    gl_Position = vec4(p, 0.0, 1.0);
+  }`;
+
+  const FS = `#version 300 es
+  precision highp float;
+  uniform vec2  uResolution;
+  uniform float uTime;
+  uniform vec2  uMouse;      // smoothed, [-1, 1]
+  uniform float uPulse;      // click: merge-radius pulse, decays in JS
+  uniform int   uFrame;
+  out vec4 outColor;
+
+  #define ZERO (min(uFrame, 0))
+
+  // ---------- SDF toolkit (iq) ----------
+  float sdSphere(vec3 p, float r) { return length(p) - r; }
+
+  // cubic smooth-min: C2 continuous, so specular highlights don't crawl at seams
+  float sminCubic(float a, float b, float k) {
+    k *= 6.0;
+    float h = max(k - abs(a - b), 0.0) / k;
+    return min(a, b) - h * h * h * k * (1.0 / 6.0);
+  }
+
+  // ---------- scene ----------
+  // five metaballs: four on incommensurate Lissajous orbits + one chasing the cursor
+  vec2 map(in vec3 p) {
+    float t = uTime * 0.55;
+    float k = 0.16 + 0.14 * uPulse + 0.03 * sin(uTime * 0.3);  // normalized smin: influence = 6k
+
+    float d = sdSphere(p - vec3(0.0, 0.12 * sin(t * 1.1), 0.0), 0.95);
+    d = sminCubic(d, sdSphere(p - vec3(1.15 * sin(t),        0.75 * sin(t * 1.3),  0.85 * cos(t)),       0.42), k);
+    d = sminCubic(d, sdSphere(p - vec3(1.05 * cos(t * 0.7), -0.65 * sin(t * 0.9),  0.95 * sin(t * 0.8)), 0.34), k);
+    d = sminCubic(d, sdSphere(p - vec3(0.85 * sin(t * 1.7),  0.85 * cos(t * 0.5), -1.0 * cos(t * 1.2)),  0.28), k);
+    // the chaser: lives on the camera-facing plane, follows the pointer
+    d = sminCubic(d, sdSphere(p - vec3(2.0 * uMouse.x, 1.4 * uMouse.y, 0.9), 0.36), k * 1.2);
+
+    // gentle surface ripple (amplitude << k, and the march uses a safety factor)
+    d += 0.015 * sin(6.0 * p.x + t) * sin(5.0 * p.y - t) * sin(6.0 * p.z);
+    return vec2(d, 1.0);
+  }
+
+  // ---------- raymarch ----------
+  const float TMAX = 20.0;
+
+  vec2 raycast(in vec3 ro, in vec3 rd, float tmin, float tmax) {
+    float t = tmin;
+    float m = -1.0;
+    for (int i = ZERO; i < 100; i++) {
+      vec3 pos = ro + rd * t;
+      vec2 h = map(pos);
+      if (abs(h.x) < 0.0005 * t) { m = h.y; break; }
+      t += h.x * 0.85;                     // safety factor: displacement breaks Lipschitz
+      if (t > tmax) { m = -1.0; break; }
+    }
+    return vec2(t, m);
+  }
+
+  // 4-tap tetrahedron normal, loop form so the compiler can't inline map() 4x
+  vec3 calcNormal(in vec3 p) {
+    const float h = 0.0005;
+    vec3 n = vec3(0.0);
+    for (int i = ZERO; i < 4; i++) {
+      vec3 e = 0.5773 * (2.0 * vec3(float(((i + 3) >> 1) & 1),
+                                    float((i >> 1) & 1),
+                                    float(i & 1)) - 1.0);
+      n += e * map(p + e * h).x;
+    }
+    return normalize(n);
+  }
+
+  // iq's improved soft shadow: triangulated closest approach, w = light size
+  float softShadow(in vec3 ro, in vec3 rd, float mint, float maxt, float w) {
+    float res = 1.0;
+    float ph = 1e20;
+    float t = mint;
+    for (int i = ZERO; i < 24; i++) {
+      float h = map(ro + rd * t).x;
+      if (h < 0.001) return 0.0;
+      float y = h * h / (2.0 * ph);
+      float d = sqrt(h * h - y * y);
+      res = min(res, d / (w * max(0.0, t - y)));
+      ph = h;
+      t += h;
+      if (res < 0.005 || t > maxt) break;
+    }
+    res = clamp(res, 0.0, 1.0);
+    return res * res * (3.0 - 2.0 * res);   // filmic falloff
+  }
+
+  // canonical 5-tap AO
+  float calcAO(in vec3 pos, in vec3 nor) {
+    float occ = 0.0;
+    float sca = 1.0;
+    for (int i = ZERO; i < 5; i++) {
+      float h = 0.01 + 0.12 * float(i) / 4.0;
+      float d = map(pos + h * nor).x;
+      occ += (h - d) * sca;
+      sca *= 0.95;
+      if (occ > 0.35) break;
+    }
+    return clamp(1.0 - 3.0 * occ, 0.0, 1.0) * (0.5 + 0.5 * nor.y);
+  }
+
+  // fake SSS: probe thickness along the light
+  float subsurface(in vec3 pos, in vec3 nor, in vec3 lig) {
+    float sss = 0.0, w = 0.5;
+    for (int i = 1; i <= 4; i++) {
+      float dl = 0.06 * float(i);
+      float d = map(pos + lig * dl - nor * 0.02).x;
+      sss += w * clamp(0.5 + d / dl, 0.0, 1.0);
+      w *= 0.6;
+    }
+    return clamp(sss, 0.0, 1.0);
+  }
+
+  // Jimenez interleaved gradient noise: ray-start jitter + output dither
+  float ign(vec2 p) {
+    return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715))));
+  }
+
+  vec3 acesTonemap(vec3 v) {
+    v *= 0.6;
+    return clamp((v * (2.51 * v + 0.03)) / (v * (2.43 * v + 0.59) + 0.14), 0.0, 1.0);
+  }
+
+  mat3 setCamera(in vec3 ro, in vec3 ta) {
+    vec3 cw = normalize(ta - ro);
+    vec3 cu = normalize(cross(cw, vec3(0.0, 1.0, 0.0)));
+    vec3 cv = normalize(cross(cu, cw));
+    return mat3(cu, cv, cw);
+  }
+
+  vec3 render(in vec3 ro, in vec3 rd) {
+    // gradient background — flat backgrounds band brutally
+    vec3 col = mix(vec3(0.010, 0.011, 0.020), vec3(0.026, 0.028, 0.048),
+                   smoothstep(-0.5, 0.7, rd.y));
+    // faint violet ground-glow under the liquid
+    col += vec3(0.10, 0.06, 0.22) * 0.07 * exp(-6.0 * abs(rd.y + 0.5));
+
+    // analytic bounding sphere: most sky pixels never march
+    vec3 oc = ro - vec3(0.0, 0.0, 0.0);
+    float b = dot(oc, rd), c = dot(oc, oc) - 12.25;   // R = 3.5 bounds everything
+    float hh = b * b - c;
+    if (hh >= 0.0) {
+      float tEnter = max(0.5, -b - sqrt(hh));
+      float tExit  = min(TMAX, -b + sqrt(hh));
+      vec2 res = raycast(ro, rd, tEnter + 0.05 * ign(gl_FragCoord.xy), tExit);
+      if (res.y > -0.5) {
+        vec3 pos = ro + res.x * rd;
+        vec3 nor = calcNormal(pos);
+
+        float occ = calcAO(pos, nor);
+        vec3  lig = normalize(vec3(-0.4, 0.7, -0.6));
+        vec3  hal = normalize(lig - rd);
+        float amb = clamp(0.5 + 0.5 * nor.y, 0.0, 1.0);
+        float dif = clamp(dot(nor, lig), 0.0, 1.0);
+        float bac = clamp(dot(nor, normalize(vec3(-lig.x, 0.0, -lig.z))), 0.0, 1.0);
+        float fre = pow(clamp(1.0 + dot(nor, rd), 0.0, 1.0), 2.0);
+
+        dif *= softShadow(pos, lig, 0.02, 6.0, 0.1);
+        float spe = pow(clamp(dot(nor, hal), 0.0, 1.0), 32.0) * dif
+                  * (0.04 + 0.96 * pow(clamp(1.0 + dot(hal, rd), 0.0, 1.0), 5.0));
+
+        vec3 albedo = vec3(0.075, 0.085, 0.16);         // deep violet-slate liquid
+        vec3 lin = vec3(0.0);
+        lin += 1.9 * dif * vec3(1.00, 0.85, 0.70);      // warm key
+        lin += 0.6 * amb * vec3(0.32, 0.40, 0.75) * occ; // cool sky fill
+        lin += 0.4 * bac * vec3(0.28, 0.24, 0.35) * occ; // back light
+        col = albedo * lin;
+        col += 4.0 * spe * vec3(1.00, 0.95, 0.85);
+        col += 0.32 * fre * occ * vec3(0.46, 0.55, 1.00);     // violet-cyan rim
+        col += vec3(0.16, 0.90, 0.65) * subsurface(pos, nor, lig)
+             * pow(clamp(dot(rd, lig), 0.0, 1.0), 3.0) * 0.5; // green glow through thin parts
+
+        // distance fog toward the background tone
+        col = mix(col, vec3(0.018, 0.020, 0.034), 1.0 - exp(-0.04 * res.x));
+      }
+    }
+    return col;
+  }
+
+  void main() {
+    vec2 p = (2.0 * gl_FragCoord.xy - uResolution.xy) / uResolution.y;
+    float yaw = 0.35 * uMouse.x;
+    float pitch = 0.20 * uMouse.y;
+    vec3 ta = vec3(0.0, 0.05, 0.0);
+    vec3 ro = ta + 4.8 * vec3(sin(yaw) * cos(pitch), 0.16 + sin(pitch), cos(yaw) * cos(pitch));
+    vec3 rd = setCamera(ro, ta) * normalize(vec3(p, 1.9));
+
+    vec3 col = render(ro, rd);
+    col *= 1.25;                                 // exposure
+    col = acesTonemap(col);
+    col = pow(col, vec3(1.0 / 2.2));
+    col += (ign(gl_FragCoord.xy) - 0.5) / 255.0; // dither last
+    outColor = vec4(col, 1.0);
+  }`;
+
+  function compile(type, src) {
+    const s = gl.createShader(type);
+    gl.shaderSource(s, src);
+    gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  const prog = gl.createProgram();
+  gl.attachShader(prog, compile(gl.VERTEX_SHADER, VS));
+  gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, FS));
+  gl.linkProgram(prog);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  gl.useProgram(prog);
+  gl.bindVertexArray(gl.createVertexArray());
+
+  const U = {};
+  for (const n of ['uResolution', 'uTime', 'uMouse', 'uPulse', 'uFrame'])
+    U[n] = gl.getUniformLocation(prog, n);
+
+  // ---------- state ----------
+  const state = { mx: 0, my: 0, tmx: 0, tmy: 0, pulse: 0, quality: 1, frame: 0 };
+  let visible = true;
+  new IntersectionObserver(([e]) => visible = e.isIntersecting).observe(canvas);
+
+  function resize() {
+    const dpr = Math.min(devicePixelRatio || 1, 1.75) * state.quality;
+    canvas.width = Math.round(innerWidth * dpr);
+    canvas.height = Math.round(innerHeight * dpr);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+  }
+  addEventListener('resize', resize);
+  resize();
+
+  addEventListener('pointermove', e => {
+    state.tmx = (e.clientX / innerWidth) * 2 - 1;
+    state.tmy = -((e.clientY / innerHeight) * 2 - 1);
+  }, { passive: true });
+  addEventListener('pointerdown', () => { state.pulse = 1; });
+
+  function draw(timeSec) {
+    gl.uniform2f(U.uResolution, canvas.width, canvas.height);
+    gl.uniform1f(U.uTime, timeSec);
+    gl.uniform2f(U.uMouse, state.mx, state.my);
+    gl.uniform1f(U.uPulse, state.pulse);
+    gl.uniform1i(U.uFrame, state.frame++);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+
+  if (reduceMotion) {
+    // one composed still: a good frozen moment, no parallax
+    draw(7.4);
+  } else {
+    let last = performance.now(), ema = 16.7;
+    (function frame(now) {
+      requestAnimationFrame(frame);
+      if (!visible || document.hidden) { last = now; return; }
+      const dt = Math.min((now - last) / 1000, 0.1);
+      last = now;
+
+      const k = 1 - Math.exp(-dt * 8);             // frame-rate independent lerp
+      state.mx += (state.tmx - state.mx) * k;
+      state.my += (state.tmy - state.my) * k;
+      state.pulse *= Math.pow(0.06, dt);           // click pulse decays ~1s
+
+      // adaptive quality with hysteresis
+      ema = ema * 0.95 + dt * 1000 * 0.05;
+      if (ema > 22 && state.quality > 0.5) { state.quality -= 0.25; resize(); ema = 16.7; }
+      else if (ema < 15 && state.quality < 1) { state.quality += 0.25; resize(); ema = 16.7; }
+
+      draw(now / 1000);
+    })(performance.now());
+  }
+}
+</script>
+</body>
+</html>
