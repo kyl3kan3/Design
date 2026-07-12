@@ -10,7 +10,7 @@ Three deliverables live here:
    a synthesis of attention psychology, motion-design craft rules, 2025–26 trends, signature
    patterns from award-winning sites, the modern CSS/JS animation stack, and the accessibility
    and performance constraints that keep motion honest.
-2. **Concepts** — [`concepts/`](concepts/): twenty-four interactive demos, one pattern family each — including a raw-WebGL2 Volume II (GPGPU particles, raymarching, fluid distortion) and a Volume III of editorial WebGL landing pages.
+2. **Concepts** — [`concepts/`](concepts/): twenty-seven interactive demos, one pattern family each — including a raw-WebGL2 Volume II (GPGPU particles, raymarching, fluid distortion) and a Volume III of editorial WebGL landing pages.
    Every demo is a **single self-contained HTML file** — vanilla CSS/JS, system fonts, inline
    SVG, zero dependencies, zero network requests. Open any file in a browser, or start at
    [`concepts/index.html`](concepts/index.html).
@@ -19,7 +19,7 @@ Three deliverables live here:
    implementation. Paste the [design-system preamble](prompts/_design-system.md), then any
    prompt, into your AI tool of choice to regenerate the pattern in your own stack and brand.
 
-## The twenty-four concepts
+## The twenty-seven concepts
 
 | # | Concept | Pattern family | What it demonstrates |
 |---|---------|----------------|----------------------|
@@ -47,13 +47,16 @@ Three deliverables live here:
 | 22 | [Lumen Nebula](concepts/22-lumen-nebula.html) | WebGL · editorial | A generative-sound landing over a live domain-warped fbm nebula — luminous filaments over dark voids, a warm core that tracks the cursor |
 | 23 | [Strata Lattice](concepts/23-strata-lattice.html) | WebGL · editorial | An architecture-studio landing with a real-time raymarched gyroid specimen — a rotating minimal-surface lattice on a concrete palette |
 | 24 | [Atelier Noir](concepts/24-atelier-noir.html) | WebGL · editorial | A fragrance-house landing whose serif wordmark is drawn into a fluid field — stir it and the letters smear and chromatically split like ink in water |
+| 25 | [Cirrus Clouds](concepts/25-cirrus-clouds.html) | WebGL · editorial | A climate-intelligence landing over a real-time volumetric cloudscape — density- and light-marched, self-shadowed, at dawn; the cursor pushes the weather |
+| 26 | [Helix Particles](concepts/26-helix-particles.html) | WebGL · editorial | A genomics landing whose hero is a live double helix built from ~24,000 GPU particles — bufferless, additive-glowing, tilted by the pointer |
+| 27 | [Prism Crystal](concepts/27-prism-crystal.html) | WebGL · editorial | A decision-intelligence landing with a real-time refractive faceted crystal — octahedral, with true chromatic dispersion splitting light along every edge |
 
 Each demo has an **About** panel (top-right) documenting the pattern, the perceptual mechanism
 behind it, the exact timing/easing values used, and its reduced-motion behavior.
 
 ## Shared craft rules
 
-All twenty-four demos follow the same motion system (see the research doc for sources); the
+All twenty-seven demos follow the same motion system (see the research doc for sources); the
 WebGL pieces additionally follow [`research/award-webgl-techniques.md`](research/award-webgl-techniques.md):
 
 - **Entrances decelerate, exits accelerate** — and exits run faster than entrances.

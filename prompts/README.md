@@ -37,7 +37,7 @@ motion values that make it feel right.
 | [Dialog choreography](components/dialog-choreography.md) | A native <dialog> whose entrance and exit are pure CSS — @starting-style in, allow-discrete out. |
 | [View Transitions swap](components/view-swap.md) | A grid whose shuffles and filters morph — items physically travel to their new slots via the View Transitions API. |
 
-## Concept prompts (24)
+## Concept prompts (27)
 
 Full-page patterns and applied examples, 01–20:
 
@@ -67,6 +67,9 @@ Full-page patterns and applied examples, 01–20:
 | 22 | [Lumen Nebula](concepts/22-lumen-nebula.md) | What this is: an editorial landing whose full-viewport hero is a real-time generative nebula — layered value-noise domain-warped three times in a fragment shader, drifting on its own and swirling around your cursor. |
 | 23 | [Strata Lattice](concepts/23-strata-lattice.md) | What this is: an architecture-studio landing whose fixed hero is a real-time raymarched gyroid — a minimal surface used in real structural engineering — carved into a slowly rotating specimen. |
 | 24 | [Atelier Noir](concepts/24-atelier-noir.md) | What this is: a fragrance-house landing whose hero wordmark is drawn into a live fluid field — a GPU flow simulation you stir with the cursor, smearing and chromatically splitting the letters like ink in water, then letting them heal. |
+| 25 | [Cirrus Clouds](concepts/25-cirrus-clouds.md) | What this is: a climate-intelligence landing whose fixed hero is a real-time volumetric cloudscape — density raymarched through an fbm field, self-shadowed by a second march toward a low sun, at dawn. |
+| 26 | [Helix Particles](concepts/26-helix-particles.md) | What this is: a genomics-platform landing whose fixed hero is a real-time double helix built from ~24,000 GPU particles — two strands and their base-pair rungs, positions computed on the GPU from each particle's index, rotating and shimmering with curl-noise wander. |
+| 27 | [Prism Crystal](concepts/27-prism-crystal.md) | What this is: a decision-intelligence landing whose fixed hero is a real-time raymarched faceted crystal — an octahedral gem that refracts a studio environment through its faces with true chromatic dispersion (red, green and blue bend by different amounts), plus a bright fresnel rim. |
 
 ## Provenance
 
