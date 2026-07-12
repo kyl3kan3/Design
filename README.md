@@ -10,7 +10,7 @@ Three deliverables live here:
    a synthesis of attention psychology, motion-design craft rules, 2025–26 trends, signature
    patterns from award-winning sites, the modern CSS/JS animation stack, and the accessibility
    and performance constraints that keep motion honest.
-2. **Concepts** — [`concepts/`](concepts/): twenty-one interactive demos, one pattern family each — including a raw-WebGL2 Volume II (GPGPU particles, raymarching, fluid distortion) and three full applied landing pages.
+2. **Concepts** — [`concepts/`](concepts/): twenty-four interactive demos, one pattern family each — including a raw-WebGL2 Volume II (GPGPU particles, raymarching, fluid distortion) and a Volume III of editorial WebGL landing pages.
    Every demo is a **single self-contained HTML file** — vanilla CSS/JS, system fonts, inline
    SVG, zero dependencies, zero network requests. Open any file in a browser, or start at
    [`concepts/index.html`](concepts/index.html).
@@ -19,7 +19,7 @@ Three deliverables live here:
    implementation. Paste the [design-system preamble](prompts/_design-system.md), then any
    prompt, into your AI tool of choice to regenerate the pattern in your own stack and brand.
 
-## The twenty-one concepts
+## The twenty-four concepts
 
 | # | Concept | Pattern family | What it demonstrates |
 |---|---------|----------------|----------------------|
@@ -44,13 +44,16 @@ Three deliverables live here:
 | 19 | [Flowmap Type](concepts/19-flowmap-type.html) | WebGL · Fluid | A self-advecting fluid field smears and chromatically splits poster typography along the cursor's wake |
 | 20 | [Applied: Signal SaaS](concepts/20-signal-landing.html) | The system, applied | A full SaaS landing at commercial polish density — glass nav, tilting product mockup, heatmap bento, rolling pricing, FAQ — every value documented |
 | 21 | [Meridian Studio](concepts/21-molten-studio.html) | WebGL · editorial | An editorial studio landing whose fixed hero is a live raymarched liquid-chrome object — reflective, cursor-reactive; oversized display-serif type; the answer to the template-market 3D hero, but alive |
+| 22 | [Lumen Nebula](concepts/22-lumen-nebula.html) | WebGL · editorial | A generative-sound landing over a live domain-warped fbm nebula — luminous filaments over dark voids, a warm core that tracks the cursor |
+| 23 | [Strata Lattice](concepts/23-strata-lattice.html) | WebGL · editorial | An architecture-studio landing with a real-time raymarched gyroid specimen — a rotating minimal-surface lattice on a concrete palette |
+| 24 | [Atelier Noir](concepts/24-atelier-noir.html) | WebGL · editorial | A fragrance-house landing whose serif wordmark is drawn into a fluid field — stir it and the letters smear and chromatically split like ink in water |
 
 Each demo has an **About** panel (top-right) documenting the pattern, the perceptual mechanism
 behind it, the exact timing/easing values used, and its reduced-motion behavior.
 
 ## Shared craft rules
 
-All twenty-one demos follow the same motion system (see the research doc for sources); the
+All twenty-four demos follow the same motion system (see the research doc for sources); the
 WebGL pieces additionally follow [`research/award-webgl-techniques.md`](research/award-webgl-techniques.md):
 
 - **Entrances decelerate, exits accelerate** — and exits run faster than entrances.
