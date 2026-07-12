@@ -37,7 +37,7 @@ motion values that make it feel right.
 | [Dialog choreography](components/dialog-choreography.md) | A native <dialog> whose entrance and exit are pure CSS — @starting-style in, allow-discrete out. |
 | [View Transitions swap](components/view-swap.md) | A grid whose shuffles and filters morph — items physically travel to their new slots via the View Transitions API. |
 
-## Concept prompts (27)
+## Concept prompts (30)
 
 Full-page patterns and applied examples, 01–20:
 
@@ -70,6 +70,9 @@ Full-page patterns and applied examples, 01–20:
 | 25 | [Cirrus Clouds](concepts/25-cirrus-clouds.md) | What this is: a climate-intelligence landing whose fixed hero is a real-time volumetric cloudscape — density raymarched through an fbm field, self-shadowed by a second march toward a low sun, at dawn. |
 | 26 | [Helix Particles](concepts/26-helix-particles.md) | What this is: a genomics-platform landing whose fixed hero is a real-time double helix built from ~24,000 GPU particles — two strands and their base-pair rungs, positions computed on the GPU from each particle's index, rotating and shimmering with curl-noise wander. |
 | 27 | [Prism Crystal](concepts/27-prism-crystal.md) | What this is: a decision-intelligence landing whose fixed hero is a real-time raymarched faceted crystal — an octahedral gem that refracts a studio environment through its faces with true chromatic dispersion (red, green and blue bend by different amounts), plus a bright fresnel rim. |
+| 28 | [Eclipse Corona](concepts/28-eclipse-corona.md) | What this is: a privacy-infrastructure landing whose fixed hero fuses four techniques in one fragment shader — an analytic dark sphere (the occulting body), a blazing corona with chromatic dispersion around its rim, volumetric god-rays streaming past it, and a drifting starfield + nebula behind. |
+| 29 | [Flux Swarm](concepts/29-flux-swarm.md) | What this is: a realtime-data landing whose hero couples two GPU simulations — a fluid velocity field you stir with the cursor, and a swarm of 65,536 particles that read that field and ride its currents. |
+| 30 | [Monolith Refraction](concepts/30-monolith-refraction.md) | What this is: a platform landing that fuses three of the lab's techniques — a live nebula field, a raymarched dark-glass monolith that refracts that nebula through its body, and an editorial kinetic-typography entrance where the headline rises line by line out of masks on load. |
 
 ## Provenance
 
